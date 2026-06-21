@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <property name="LOG_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - [req=%X{requestId:-n/a}] [user=%X{user:-system}] %msg%n"/>
+
+    <springProperty scope="context" name="LOG_FILE" source="logging.file.name"/>
+    <springProperty scope="context" name="FILE_NAME_PATTERN" source="logging.logback.rollingpolicy.file-name-pattern"/>
+    <springProperty scope="context" name="MAX_HISTORY" source="logging.logback.rollingpolicy.max-history"/>
+    <springProperty scope="context" name="TOTAL_SIZE_CAP" source="logging.logback.rollingpolicy.total-size-cap"/>
+    <springProperty scope="context" name="LOG_LEVEL_ROOT" source="logging.log-level-root"/>
+
+    <appender name="Console" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="RollingFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_FILE}</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${FILE_NAME_PATTERN}</fileNamePattern>
+            <maxHistory>${MAX_HISTORY}</maxHistory>
+            <totalSizeCap>${TOTAL_SIZE_CAP:-1GB}</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="ErrorFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/error.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/error.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>500MB</totalSizeCap>
+        </rollingPolicy>
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>ERROR</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="org.springframework.test.context.cache" level="WARN"/>
+
+    <root level="${LOG_LEVEL_ROOT:-INFO}">
+        <appender-ref ref="Console"/>
+        <appender-ref ref="RollingFile"/>
+        <appender-ref ref="ErrorFile"/>
+    </root>
+</configuration>

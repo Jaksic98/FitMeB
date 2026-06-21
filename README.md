@@ -1,4 +1,4 @@
-# HAIRARENA - Backend
+# FITME - Backend
 
 ## Lokalno Pokretanje (Backend)
 
@@ -80,7 +80,7 @@ docker compose up -d
 ```
 
 ```bash
-docker exec -it hairarena-postgres psql -U hairarena -d postgres -c "CREATE DATABASE hairarena;"
+docker exec -it fitme-postgres psql -U fitme -d postgres -c "CREATE DATABASE fitme;"
 ```
 
 ### 4) Aplikacija
@@ -90,6 +90,42 @@ docker exec -it hairarena-postgres psql -U hairarena -d postgres -c "CREATE DATA
 ```
 
 </details>
+
+## Čišćenje Flyway Migracija
+
+Ako Flyway prijavi grešku zbog nekonzistentnog stanja baze (npr. migracija koja je prethodno pala), bazu možete resetovati na jedan od sledećih načina:
+
+### Opcija A — Docker reset (preporučeno za lokalni dev)
+
+Briše kontejner i volumen, pa podiže sve iznova:
+
+```bash
+docker compose down -v
+docker compose up -d
+docker exec -it fitme-postgres psql -U fitme -d postgres -c "CREATE DATABASE fitme;"
+```
+
+Flyway će primeniti sve migracije od nule pri sledećem pokretanju aplikacije.
+
+### Opcija B — Ručno brisanje Flyway historije
+
+Ako ne želite da obrišete podatke, samo resetujete Flyway stanje:
+
+```bash
+docker exec -it fitme-postgres psql -U fitme -d fitme -c "DELETE FROM flyway_schema_history WHERE success = false;"
+```
+
+Koristi se kada je migracija pala i bila rollback-ovana, ali je Flyway ostavio neuspešan zapis u historiji.
+
+### Opcija C — Flyway clean (samo za dev/test okruženje)
+
+```bash
+./mvnw flyway:clean flyway:migrate
+```
+
+> **Upozorenje:** `flyway:clean` briše **sve** tabele u shemi. Nikada ne koristiti na produkciji.
+
+---
 
 ## Formatiranje Koda
 

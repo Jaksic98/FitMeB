@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: fitme
+  profiles:
+    active: dev
+  config:
+    import: optional:file:${user.dir}/.env[.properties]
+  web:
+    encoding:
+      charset: UTF-8
+      force: true
+      enabled: true
+  jpa:
+    properties:
+      hibernate:
+        show-sql: true
+        format_sql: true
+        hbm2ddl:
+          auto: none
+  hibernate:
+    ddl-auto: none
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+security:
+  jwt:
+    cookie-name: fitme_cookie
+    secret-key: ${SECRET_KEY}
+    cookie-expiry: 604800
+    cookie-secure: true
