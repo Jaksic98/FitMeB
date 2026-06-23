@@ -37,6 +37,9 @@ public enum ErrorCode {
   KONTAKT_PRAVNOG_LICA_ALREADY_EXISTS(
       2207, "Kontakt pravnog lica već postoji", HttpStatus.CONFLICT),
 
+  // 25xx – pilates domain
+  PILATES_NOT_FOUND(2501, "Sprava za pilates nije pronađena", HttpStatus.NOT_FOUND),
+
   // 3xxx – generic resources
   RESOURCE_NOT_FOUND(3001, "Resurs nije pronađen", HttpStatus.NOT_FOUND);
 
