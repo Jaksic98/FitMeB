@@ -24,6 +24,7 @@ public class TerminService {
 
   private final TerminRepository repository;
   private final TerminPatchMapper patchMapper;
+  private final AppointmentGenerationService appointmentGenerationService;
 
   public List<TerminDTO> getAllTermini() {
     return repository.findAllByStatusNot(Status.DELETED).stream().map(this::toDto).toList();
@@ -43,7 +44,13 @@ public class TerminService {
     ensureNoOverlap(date, startTime, endTime, null);
 
     Termin termin = Termin.builder().date(date).startTime(startTime).endTime(endTime).build();
-    return toDto(repository.save(termin));
+    Termin savedTermin = repository.save(termin);
+
+    if (savedTermin.getStatus() == Status.ACTIVE) {
+      appointmentGenerationService.generateForTermin(savedTermin.getId());
+    }
+
+    return toDto(savedTermin);
   }
 
   @Transactional

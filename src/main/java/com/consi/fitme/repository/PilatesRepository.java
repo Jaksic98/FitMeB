@@ -12,5 +12,7 @@ public interface PilatesRepository extends JpaRepository<Pilates, Long> {
 
   List<Pilates> findAllByStatusNot(Status status);
 
+  List<Pilates> findAllByStatus(Status status);
+
   Optional<Pilates> findByIdAndStatusNot(Long id, Status status);
 }

@@ -20,6 +20,7 @@ public class PilatesService {
 
   private final PilatesRepository repository;
   private final PilatesPatchMapper patchMapper;
+  private final AppointmentGenerationService appointmentGenerationService;
 
   public List<PilatesDTO> getAllPilates() {
     return repository.findAllByStatusNot(Status.DELETED).stream().map(this::toDto).toList();
@@ -36,7 +37,13 @@ public class PilatesService {
             .position(createPilatesRequestDTO.getPosition())
             .name(createPilatesRequestDTO.getName())
             .build();
-    return toDto(repository.save(pilates));
+    Pilates savedPilates = repository.save(pilates);
+
+    if (savedPilates.getStatus() == Status.ACTIVE) {
+      appointmentGenerationService.generateForPilates(savedPilates.getId());
+    }
+
+    return toDto(savedPilates);
   }
 
   @Transactional
