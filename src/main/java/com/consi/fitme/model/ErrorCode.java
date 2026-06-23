@@ -40,6 +40,13 @@ public enum ErrorCode {
   // 25xx – pilates domain
   PILATES_NOT_FOUND(2501, "Sprava za pilates nije pronađena", HttpStatus.NOT_FOUND),
 
+  // 26xx – termin domain
+  TERMIN_NOT_FOUND(2601, "Termin nije pronađen", HttpStatus.NOT_FOUND),
+  TERMIN_OVERLAP(
+      2602, "Termin se preklapa sa postojećim terminom istog datuma", HttpStatus.CONFLICT),
+  TERMIN_INVALID_TIME_RANGE(
+      2603, "Vreme završetka termina mora biti posle vremena početka", HttpStatus.BAD_REQUEST),
+
   // 3xxx – generic resources
   RESOURCE_NOT_FOUND(3001, "Resurs nije pronađen", HttpStatus.NOT_FOUND);
 
