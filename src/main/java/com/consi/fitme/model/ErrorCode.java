@@ -23,6 +23,8 @@ public enum ErrorCode {
   USERNAME_ALREADY_EXISTS(2101, "Korisničko ime već postoji", HttpStatus.CONFLICT),
   USER_NOT_FOUND(2102, "Korisnik nije pronađen", HttpStatus.NOT_FOUND),
   WEAK_PASSWORD(2103, "Lozinka ne ispunjava bezbednosne uslove", HttpStatus.BAD_REQUEST),
+  INVALID_ACTIVATION_TOKEN(
+      2104, "Token za aktivaciju nije ispravan ili je istekao", HttpStatus.BAD_REQUEST),
   TIP_PRAVNOG_LICA_NOT_FOUND(2201, "Tip pravnog lica nije pronađen", HttpStatus.NOT_FOUND),
   TIP_PRAVNOG_LICA_ALREADY_EXISTS(2202, "Tip pravnog lica već postoji", HttpStatus.CONFLICT),
   TIP_PRAVNOG_LICA_DELETE_BLOCKED(

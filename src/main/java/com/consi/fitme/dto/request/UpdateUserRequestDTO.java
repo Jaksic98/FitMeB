@@ -3,6 +3,7 @@ package com.consi.fitme.dto.request;
 import com.consi.fitme.model.Role;
 import com.consi.fitme.model.Status;
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.util.List;
@@ -35,6 +36,16 @@ public class UpdateUserRequestDTO {
   private String password;
 
   private Status status;
+
+  @Pattern(regexp = "^\\+?[0-9 ]{6,30}$", message = "Broj telefona nije u ispravnom formatu")
+  private String phoneNumber;
+
+  @Min(value = 0, message = "Preostali broj termina ne može biti negativan")
+  private Integer remainingAppointments;
+
+  private Boolean emailNotifications;
+
+  private Boolean calendarNotifications;
 
   @Builder.Default private List<Role> roles = null;
 }

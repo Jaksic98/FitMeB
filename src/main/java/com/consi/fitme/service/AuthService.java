@@ -1,6 +1,9 @@
 package com.consi.fitme.service;
 
 import com.consi.fitme.dto.UserDTO;
+import com.consi.fitme.dto.request.CreateUserRequestDTO;
+import com.consi.fitme.dto.request.RegisterRequestDTO;
+import com.consi.fitme.exception.auth.InvalidActivationTokenException;
 import com.consi.fitme.exception.auth.InvalidJwtTokenException;
 import com.consi.fitme.exception.auth.LoginFailedException;
 import com.consi.fitme.exception.auth.MissingCookieException;
@@ -17,6 +20,8 @@ import jakarta.servlet.http.HttpSession;
 import java.util.List;
 import java.util.Optional;
 import lombok.AllArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -25,16 +30,20 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @AllArgsConstructor
 public class AuthService {
   private static final int MAX_FAILED_LOGIN_ATTEMPTS = 5;
+  private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
   private final JwtService jwtService;
   private final AuthenticationProvider authenticationProvider;
   private final CustomUserDetailsService customUserDetailsService;
   private final UserRepository userRepository;
+  private final UserService userService;
+  private final ActivationTokenService activationTokenService;
 
   public void login(String email, String password, HttpServletResponse response) {
     Optional<User> foundUser = userRepository.findByEmailAndStatusNot(email, Status.DELETED);
@@ -79,6 +88,45 @@ public class AuthService {
 
   public UserDTO me(HttpServletRequest request) {
     return getJwtUserDTO(jwtService.extractTokenFromCookie(request));
+  }
+
+  @Transactional
+  public UserDTO register(RegisterRequestDTO registerRequestDTO) {
+    CreateUserRequestDTO createUserRequestDTO =
+        CreateUserRequestDTO.builder()
+            .username(registerRequestDTO.getUsername())
+            .fullName(registerRequestDTO.getFullName())
+            .email(registerRequestDTO.getEmail())
+            .phoneNumber(registerRequestDTO.getPhoneNumber())
+            .password(registerRequestDTO.getPassword())
+            .roles(List.of())
+            .build();
+
+    UserDTO createdUser = userService.createUser(createUserRequestDTO);
+    String activationToken = activationTokenService.generateToken(createdUser.getEmail());
+    logger.info(
+        "Aktivacioni link za korisnika {}: {}/api/auth/activate?token={}",
+        createdUser.getEmail(),
+        "<frontend-base-url>",
+        activationToken);
+    return createdUser;
+  }
+
+  @Transactional
+  public void activate(String token) {
+    String email = activationTokenService.extractEmail(token);
+    User user =
+        userRepository
+            .findByEmailAndStatusNot(email, Status.DELETED)
+            .orElseThrow(InvalidActivationTokenException::new);
+
+    if (user.getStatus() != Status.INACTIVE) {
+      return;
+    }
+
+    user.setStatus(Status.ACTIVE);
+    user.setFailedLoginAttempts(0);
+    userRepository.save(user);
   }
 
   public void validateSession(HttpServletRequest request) {
@@ -132,8 +180,12 @@ public class AuthService {
         .username(user.getUsername())
         .fullName(user.getFullName())
         .email(user.getEmail())
+        .phoneNumber(user.getPhoneNumber())
         .status(user.getStatus())
         .roles(roles)
+        .remainingAppointments(user.getRemainingAppointments())
+        .emailNotifications(user.getEmailNotifications())
+        .calendarNotifications(user.getCalendarNotifications())
         .build();
   }
 

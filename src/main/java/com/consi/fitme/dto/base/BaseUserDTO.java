@@ -2,6 +2,7 @@ package com.consi.fitme.dto.base;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -28,4 +29,7 @@ public abstract class BaseUserDTO {
   @Email(message = "Email nije u ispravnom formatu")
   @Size(max = 254, message = "Email može imati najviše 254 karaktera")
   private String email;
+
+  @Pattern(regexp = "^\\+?[0-9 ]{6,30}$", message = "Broj telefona nije u ispravnom formatu")
+  private String phoneNumber;
 }

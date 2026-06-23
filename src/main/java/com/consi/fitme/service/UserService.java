@@ -77,8 +77,18 @@ public class UserService {
             .fullName(createUserRequestDTO.getFullName())
             .email(createUserRequestDTO.getEmail())
             .password(passwordEncoder.encode(createUserRequestDTO.getPassword()))
+            .phoneNumber(createUserRequestDTO.getPhoneNumber())
             .build();
     user.setStatus(Status.INACTIVE);
+    if (createUserRequestDTO.getRemainingAppointments() != null) {
+      user.setRemainingAppointments(createUserRequestDTO.getRemainingAppointments());
+    }
+    if (createUserRequestDTO.getEmailNotifications() != null) {
+      user.setEmailNotifications(createUserRequestDTO.getEmailNotifications());
+    }
+    if (createUserRequestDTO.getCalendarNotifications() != null) {
+      user.setCalendarNotifications(createUserRequestDTO.getCalendarNotifications());
+    }
     ensureUsernameUniqueForActiveStatus(createUserRequestDTO.getUsername(), null, user.getStatus());
 
     try {
@@ -184,8 +194,12 @@ public class UserService {
         .username(user.getUsername())
         .fullName(user.getFullName())
         .email(user.getEmail())
+        .phoneNumber(user.getPhoneNumber())
         .status(user.getStatus())
         .roles(roles)
+        .remainingAppointments(user.getRemainingAppointments())
+        .emailNotifications(user.getEmailNotifications())
+        .calendarNotifications(user.getCalendarNotifications())
         .build();
   }
 

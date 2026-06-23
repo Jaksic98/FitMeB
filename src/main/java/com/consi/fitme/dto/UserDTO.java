@@ -16,4 +16,7 @@ public class UserDTO extends BaseUserDTO {
   private final Long id;
   private final Status status;
   private final List<Role> roles;
+  private final Integer remainingAppointments;
+  private final Boolean emailNotifications;
+  private final Boolean calendarNotifications;
 }

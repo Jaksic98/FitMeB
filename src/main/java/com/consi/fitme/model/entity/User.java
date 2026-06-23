@@ -50,6 +50,21 @@ public class User implements UserDetails {
   @Builder.Default
   private Integer failedLoginAttempts = 0;
 
+  @Column(name = "phone_number")
+  private String phoneNumber;
+
+  @Column(name = "remaining_appointments", nullable = false)
+  @Builder.Default
+  private Integer remainingAppointments = 0;
+
+  @Column(name = "email_notifications", nullable = false)
+  @Builder.Default
+  private Boolean emailNotifications = true;
+
+  @Column(name = "calendar_notifications", nullable = false)
+  @Builder.Default
+  private Boolean calendarNotifications = true;
+
   @Transient private List<SimpleGrantedAuthority> grantedAuthorities;
 
   @Override

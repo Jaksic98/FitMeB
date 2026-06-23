@@ -90,6 +90,28 @@ class UserServiceIT {
   }
 
   @Test
+  void givenNewUser_whenCreated_thenProfileFieldsDefaultCorrectly() {
+    String seed = String.valueOf(System.currentTimeMillis());
+    String username = "itest.profile.defaults." + seed;
+    String email = "itest.profile.defaults." + seed + "@fitme.com";
+
+    UserDTO createdUser =
+        service.createUser(
+            CreateUserRequestDTO.builder()
+                .username(username)
+                .fullName("Integration Profile Defaults User")
+                .email(email)
+                .phoneNumber("+381601112233")
+                .password("itest.profile.defaults.fitme123!")
+                .build());
+
+    assertThat(createdUser.getPhoneNumber()).isEqualTo("+381601112233");
+    assertThat(createdUser.getRemainingAppointments()).isZero();
+    assertThat(createdUser.getEmailNotifications()).isTrue();
+    assertThat(createdUser.getCalendarNotifications()).isTrue();
+  }
+
+  @Test
   void givenNewUser_whenCreated_thenInitialStatusIsInactive() {
     String seed = String.valueOf(System.currentTimeMillis());
     String username = "itest.default.status." + seed;
@@ -105,6 +127,37 @@ class UserServiceIT {
                 .build());
 
     assertThat(createdUser.getStatus()).isEqualTo(Status.INACTIVE);
+  }
+
+  @Test
+  void givenExistingUser_whenUpdateWithNewProfileFields_thenAppliesOnlyProvidedFields() {
+    String seed = String.valueOf(System.currentTimeMillis());
+    String username = "itest.profile.update." + seed;
+    String email = "itest.profile.update." + seed + "@fitme.com";
+
+    UserDTO createdUser =
+        service.createUser(
+            CreateUserRequestDTO.builder()
+                .username(username)
+                .fullName("Integration Profile Update User")
+                .email(email)
+                .password("itest.profile.update.fitme123!")
+                .build());
+
+    UserDTO updatedUser =
+        service.updateUser(
+            createdUser.getId(),
+            UpdateUserRequestDTO.builder()
+                .phoneNumber("+381609998877")
+                .remainingAppointments(10)
+                .emailNotifications(false)
+                .build());
+
+    assertThat(updatedUser.getPhoneNumber()).isEqualTo("+381609998877");
+    assertThat(updatedUser.getRemainingAppointments()).isEqualTo(10);
+    assertThat(updatedUser.getEmailNotifications()).isFalse();
+    assertThat(updatedUser.getCalendarNotifications()).isTrue();
+    assertThat(updatedUser.getUsername()).isEqualTo(username);
   }
 
   @Test

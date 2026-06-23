@@ -5,8 +5,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.consi.fitme.dto.UserDTO;
 import com.consi.fitme.dto.request.CreateUserRequestDTO;
+import com.consi.fitme.dto.request.RegisterRequestDTO;
 import com.consi.fitme.dto.request.UpdateUserRequestDTO;
+import com.consi.fitme.exception.auth.InvalidActivationTokenException;
 import com.consi.fitme.exception.auth.LoginFailedException;
+import com.consi.fitme.model.Role;
 import com.consi.fitme.model.Status;
 import com.consi.fitme.model.entity.User;
 import com.consi.fitme.repository.UserRepository;
@@ -30,6 +33,7 @@ class AuthServiceIT {
   @Autowired private AuthService service;
   @Autowired private UserService userService;
   @Autowired private UserRepository userRepository;
+  @Autowired private ActivationTokenService activationTokenService;
 
   @Test
   void givenInactiveUser_whenLogin_thenThrowsLoginFailedException() {
@@ -157,6 +161,88 @@ class AuthServiceIT {
     User afterUnlock = userRepository.findById(activeUser.getId()).orElseThrow();
     assertThat(afterUnlock.getStatus()).isEqualTo(Status.ACTIVE);
     assertThat(afterUnlock.getFailedLoginAttempts()).isZero();
+  }
+
+  @Test
+  void givenValidRegistration_whenRegister_thenCreatesInactiveClientUserWithDefaults() {
+    String seed = String.valueOf(System.currentTimeMillis());
+    String email = "itest.register." + seed + "@fitme.com";
+
+    UserDTO registeredUser =
+        service.register(
+            RegisterRequestDTO.builder()
+                .username("itest.register." + seed)
+                .fullName("Integration Register User")
+                .email(email)
+                .phoneNumber("+381601234567")
+                .password("itest.register.fitme123!")
+                .build());
+
+    assertThat(registeredUser.getStatus()).isEqualTo(Status.INACTIVE);
+    assertThat(registeredUser.getRoles()).containsExactly(Role.CLIENT);
+    assertThat(registeredUser.getRemainingAppointments()).isZero();
+    assertThat(registeredUser.getEmailNotifications()).isTrue();
+    assertThat(registeredUser.getCalendarNotifications()).isTrue();
+    assertThat(registeredUser.getPhoneNumber()).isEqualTo("+381601234567");
+  }
+
+  @Test
+  void givenRegisteredUser_whenActivateWithValidToken_thenStatusBecomesActive() {
+    String seed = String.valueOf(System.currentTimeMillis());
+    String email = "itest.activate." + seed + "@fitme.com";
+
+    UserDTO registeredUser =
+        service.register(
+            RegisterRequestDTO.builder()
+                .username("itest.activate." + seed)
+                .fullName("Integration Activate User")
+                .email(email)
+                .password("itest.activate.fitme123!")
+                .build());
+
+    String activationToken = activationTokenService.generateToken(email);
+    service.activate(activationToken);
+
+    User persisted = userRepository.findById(registeredUser.getId()).orElseThrow();
+    assertThat(persisted.getStatus()).isEqualTo(Status.ACTIVE);
+    assertThat(persisted.getFailedLoginAttempts()).isZero();
+  }
+
+  @Test
+  void givenAlreadyActiveUser_whenActivateAgain_thenRemainsActiveWithoutError() {
+    String seed = String.valueOf(System.currentTimeMillis());
+    String email = "itest.activate.twice." + seed + "@fitme.com";
+
+    UserDTO registeredUser =
+        service.register(
+            RegisterRequestDTO.builder()
+                .username("itest.activate.twice." + seed)
+                .fullName("Integration Activate Twice User")
+                .email(email)
+                .password("itest.activate.twice.fitme123!")
+                .build());
+
+    String activationToken = activationTokenService.generateToken(email);
+    service.activate(activationToken);
+    service.activate(activationToken);
+
+    User persisted = userRepository.findById(registeredUser.getId()).orElseThrow();
+    assertThat(persisted.getStatus()).isEqualTo(Status.ACTIVE);
+  }
+
+  @Test
+  void givenMalformedToken_whenActivate_thenThrowsInvalidActivationTokenException() {
+    assertThatThrownBy(() -> service.activate("not-a-real-token"))
+        .isInstanceOf(InvalidActivationTokenException.class);
+  }
+
+  @Test
+  void givenTokenForUnknownEmail_whenActivate_thenThrowsInvalidActivationTokenException() {
+    String token =
+        activationTokenService.generateToken("itest.unknown." + System.nanoTime() + "@fitme.com");
+
+    assertThatThrownBy(() -> service.activate(token))
+        .isInstanceOf(InvalidActivationTokenException.class);
   }
 
   private UserDTO createActiveUser(String seed, String email, String password) {
