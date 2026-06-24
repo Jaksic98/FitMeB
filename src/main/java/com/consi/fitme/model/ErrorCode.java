@@ -47,6 +47,19 @@ public enum ErrorCode {
   TERMIN_INVALID_TIME_RANGE(
       2603, "Vreme završetka termina mora biti posle vremena početka", HttpStatus.BAD_REQUEST),
 
+  // 27xx – appointment domain
+  APPOINTMENT_NOT_FOUND(2701, "Appointment nije pronađen", HttpStatus.NOT_FOUND),
+  APPOINTMENT_NOT_AVAILABLE(2702, "Appointment slot nije dostupan", HttpStatus.CONFLICT),
+  NO_REMAINING_APPOINTMENTS(2703, "Nema preostalih termina za rezervaciju", HttpStatus.BAD_REQUEST),
+  APPOINTMENT_CANCEL_WINDOW_EXPIRED(
+      2704, "Otkazivanje ili izmena nije moguća manje od 12h pre termina", HttpStatus.BAD_REQUEST),
+  APPOINTMENT_OWNERSHIP_VIOLATION(
+      2705, "Nemate pravo pristupa ovom appointmentu", HttpStatus.FORBIDDEN),
+  APPOINTMENT_USER_REQUIRED(
+      2706, "Korisnik je obavezan za admin rezervaciju", HttpStatus.BAD_REQUEST),
+  APPOINTMENT_NOT_BOOKED(
+      2707, "Appointment nije rezervisan, otkazivanje/izmena nije moguća", HttpStatus.CONFLICT),
+
   // 3xxx – generic resources
   RESOURCE_NOT_FOUND(3001, "Resurs nije pronađen", HttpStatus.NOT_FOUND);
 

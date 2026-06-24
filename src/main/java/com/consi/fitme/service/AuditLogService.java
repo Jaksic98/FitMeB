@@ -6,6 +6,7 @@ import com.consi.fitme.repository.AuditLogRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -26,7 +27,7 @@ public class AuditLogService {
   private static final String USER_MDC_KEY = "user";
 
   private final AuditLogRepository auditLogRepository;
-  private final ObjectMapper objectMapper = new ObjectMapper();
+  private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
   public void logCreate(String entityType, Long entityId, Object newRow) {
     logChange(AuditAction.CREATE, entityType, entityId, null, newRow, null);
