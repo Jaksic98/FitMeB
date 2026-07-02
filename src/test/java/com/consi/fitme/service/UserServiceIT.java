@@ -373,6 +373,38 @@ class UserServiceIT {
   }
 
   @Test
+  void givenQFilterMatchingPhoneNumber_whenGetUsers_thenReturnsMatchingUser() {
+    String seed = String.valueOf(System.currentTimeMillis());
+    String username = "itest.qfilter." + seed;
+    String phoneNumber = "+38160" + seed.substring(seed.length() - 7);
+
+    UserDTO createdUser =
+        service.createUser(
+            CreateUserRequestDTO.builder()
+                .username(username)
+                .fullName("Integration Q Filter User")
+                .email(username + "@fitme.com")
+                .phoneNumber(phoneNumber)
+                .password("itest.qfilter.fitme123!")
+                .build());
+
+    UserSearchRequestDTO searchRequest =
+        UserSearchRequestDTO.builder()
+            .q(phoneNumber)
+            .sortField("username")
+            .direction(Sort.Direction.ASC)
+            .page(1)
+            .size(10)
+            .build();
+
+    PagingResponseDTO<UserDTO> page = service.getUsers(searchRequest);
+    List<UserDTO> pageData = new ArrayList<>(page.getData());
+
+    assertThat(pageData).hasSize(1);
+    assertThat(pageData.getFirst().getId()).isEqualTo(createdUser.getId());
+  }
+
+  @Test
   void givenNonExistingUserId_whenGetUser_thenThrowsUserNotFoundException() {
     assertThatThrownBy(() -> service.getUser(Long.MAX_VALUE))
         .isInstanceOf(UserNotFoundException.class);

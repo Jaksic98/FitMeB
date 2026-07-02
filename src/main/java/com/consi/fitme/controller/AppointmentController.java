@@ -1,6 +1,7 @@
 package com.consi.fitme.controller;
 
 import com.consi.fitme.dto.AppointmentDTO;
+import com.consi.fitme.dto.request.AppointmentSearchRequestDTO;
 import com.consi.fitme.dto.request.BookAppointmentRequestDTO;
 import com.consi.fitme.dto.request.UpdateAppointmentRequestDTO;
 import com.consi.fitme.dto.response.MessageResponseDTO;
@@ -18,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -36,10 +38,10 @@ public class AppointmentController {
   @GetMapping
   @PreAuthorize("hasRole('ADMIN')")
   public ResponseEntity<SuccessResponseDTO<List<AppointmentDTO>>> getAllAppointments(
-      HttpServletRequest request) {
+      @ModelAttribute AppointmentSearchRequestDTO filter, HttpServletRequest request) {
     return ResponseEntity.ok(
         ResponseUtil.success(
-            service.getAllAppointments(),
+            service.getAllAppointments(filter),
             "Appointment-i su uspešno preuzeti",
             request.getRequestURI()));
   }

@@ -7,6 +7,7 @@ import com.consi.fitme.dto.AppointmentDTO;
 import com.consi.fitme.dto.PilatesDTO;
 import com.consi.fitme.dto.TerminDTO;
 import com.consi.fitme.dto.UserDTO;
+import com.consi.fitme.dto.request.AppointmentSearchRequestDTO;
 import com.consi.fitme.dto.request.BookAppointmentRequestDTO;
 import com.consi.fitme.dto.request.CreatePilatesRequestDTO;
 import com.consi.fitme.dto.request.CreateTerminRequestDTO;
@@ -448,7 +449,8 @@ class AppointmentServiceIT {
     service.bookAppointment(
         BookAppointmentRequestDTO.builder().appointmentId(bookedAppointmentId).build());
 
-    List<AppointmentDTO> appointments = service.getAllAppointments();
+    List<AppointmentDTO> appointments =
+        service.getAllAppointments(AppointmentSearchRequestDTO.builder().build());
 
     assertThat(appointments).extracting(AppointmentDTO::getId).contains(bookedAppointmentId);
     assertThat(appointments)
@@ -456,6 +458,76 @@ class AppointmentServiceIT {
         .doesNotContain(availableAppointmentId);
     assertThat(appointments)
         .allSatisfy(dto -> assertThat(dto.getStatus()).isEqualTo(AppointmentStatus.BOOKED));
+  }
+
+  @Test
+  void givenUserIdFilter_whenGetAllAppointments_thenReturnsOnlyMatchingUser() {
+    UserDTO firstClient = createActiveClient(seed(), 3);
+    UserDTO secondClient = createActiveClient(seed(), 3);
+    Long firstAppointmentId =
+        createAppointment(farFutureDate(), LocalTime.of(9, 0), LocalTime.of(10, 0));
+    Long secondAppointmentId =
+        createAppointment(farFutureDate(), LocalTime.of(11, 0), LocalTime.of(12, 0));
+    authenticateAs(firstClient.getId(), "CLIENT");
+    service.bookAppointment(
+        BookAppointmentRequestDTO.builder().appointmentId(firstAppointmentId).build());
+    authenticateAs(secondClient.getId(), "CLIENT");
+    service.bookAppointment(
+        BookAppointmentRequestDTO.builder().appointmentId(secondAppointmentId).build());
+
+    List<AppointmentDTO> appointments =
+        service.getAllAppointments(
+            AppointmentSearchRequestDTO.builder().userId(firstClient.getId()).build());
+
+    assertThat(appointments).extracting(AppointmentDTO::getId).containsExactly(firstAppointmentId);
+  }
+
+  @Test
+  void givenPilatesIdFilter_whenGetAllAppointments_thenReturnsOnlyMatchingPilates() {
+    UserDTO client = createActiveClient(seed(), 3);
+    Long firstAppointmentId =
+        createAppointment(farFutureDate(), LocalTime.of(9, 0), LocalTime.of(10, 0));
+    Long secondAppointmentId =
+        createAppointment(farFutureDate(), LocalTime.of(11, 0), LocalTime.of(12, 0));
+    authenticateAs(client.getId(), "CLIENT");
+    service.bookAppointment(
+        BookAppointmentRequestDTO.builder().appointmentId(firstAppointmentId).build());
+    service.bookAppointment(
+        BookAppointmentRequestDTO.builder().appointmentId(secondAppointmentId).build());
+    Long firstPilatesId =
+        appointmentRepository.findById(firstAppointmentId).orElseThrow().getPilatesId();
+
+    List<AppointmentDTO> appointments =
+        service.getAllAppointments(
+            AppointmentSearchRequestDTO.builder().pilatesId(firstPilatesId).build());
+
+    assertThat(appointments).extracting(AppointmentDTO::getId).containsExactly(firstAppointmentId);
+  }
+
+  @Test
+  void givenDateRangeFilter_whenGetAllAppointments_thenReturnsOnlyWithinRange() {
+    UserDTO client = createActiveClient(seed(), 3);
+    LocalDate matchingDate = farFutureDate();
+    LocalDate otherDate = matchingDate.plusDays(10);
+    Long matchingAppointmentId =
+        createAppointment(matchingDate, LocalTime.of(9, 0), LocalTime.of(10, 0));
+    Long otherAppointmentId = createAppointment(otherDate, LocalTime.of(9, 0), LocalTime.of(10, 0));
+    authenticateAs(client.getId(), "CLIENT");
+    service.bookAppointment(
+        BookAppointmentRequestDTO.builder().appointmentId(matchingAppointmentId).build());
+    service.bookAppointment(
+        BookAppointmentRequestDTO.builder().appointmentId(otherAppointmentId).build());
+
+    List<AppointmentDTO> appointments =
+        service.getAllAppointments(
+            AppointmentSearchRequestDTO.builder()
+                .dateFrom(matchingDate)
+                .dateTo(matchingDate)
+                .build());
+
+    assertThat(appointments)
+        .extracting(AppointmentDTO::getId)
+        .containsExactly(matchingAppointmentId);
   }
 
   @Test

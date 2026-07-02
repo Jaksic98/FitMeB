@@ -1,6 +1,7 @@
 package com.consi.fitme.service;
 
 import com.consi.fitme.dto.AppointmentDTO;
+import com.consi.fitme.dto.request.AppointmentSearchRequestDTO;
 import com.consi.fitme.dto.request.BookAppointmentRequestDTO;
 import com.consi.fitme.dto.request.UpdateAppointmentRequestDTO;
 import com.consi.fitme.dto.response.MessageResponseDTO;
@@ -52,8 +53,38 @@ public class AppointmentService {
   private final UserRepository userRepository;
   private final AuditLogService auditLogService;
 
-  public List<AppointmentDTO> getAllAppointments() {
-    return enrich(repository.findAllByStatus(AppointmentStatus.BOOKED));
+  public List<AppointmentDTO> getAllAppointments(AppointmentSearchRequestDTO filter) {
+    List<Appointment> appointments = repository.findAllByStatus(AppointmentStatus.BOOKED);
+
+    if (filter.getUserId() != null) {
+      appointments =
+          appointments.stream().filter(a -> filter.getUserId().equals(a.getUserId())).toList();
+    }
+    if (filter.getPilatesId() != null) {
+      appointments =
+          appointments.stream()
+              .filter(a -> filter.getPilatesId().equals(a.getPilatesId()))
+              .toList();
+    }
+
+    List<AppointmentDTO> dtos = enrich(appointments);
+
+    if (filter.getDateFrom() != null) {
+      dtos =
+          dtos.stream()
+              .filter(dto -> dto.getTerminDate() != null)
+              .filter(dto -> !dto.getTerminDate().isBefore(filter.getDateFrom()))
+              .toList();
+    }
+    if (filter.getDateTo() != null) {
+      dtos =
+          dtos.stream()
+              .filter(dto -> dto.getTerminDate() != null)
+              .filter(dto -> !dto.getTerminDate().isAfter(filter.getDateTo()))
+              .toList();
+    }
+
+    return dtos;
   }
 
   public AppointmentDTO getAppointment(Long id) {

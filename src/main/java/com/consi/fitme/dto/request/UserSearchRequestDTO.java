@@ -19,6 +19,7 @@ public class UserSearchRequestDTO extends PagingRequestDTO {
   private String username;
   private String fullName;
   private String email;
+  private String q;
   private List<Role> roles;
   private List<String> status;
 }

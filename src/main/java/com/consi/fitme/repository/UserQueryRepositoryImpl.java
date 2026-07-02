@@ -79,6 +79,14 @@ public class UserQueryRepositoryImpl implements UserQueryRepository {
     if (hasText(searchRequest.getEmail())) {
       predicate.and(user.email.containsIgnoreCase(searchRequest.getEmail().trim()));
     }
+    if (hasText(searchRequest.getQ())) {
+      String term = searchRequest.getQ().trim();
+      predicate.and(
+          user.username
+              .containsIgnoreCase(term)
+              .or(user.email.containsIgnoreCase(term))
+              .or(user.phoneNumber.containsIgnoreCase(term)));
+    }
     if (searchRequest.getRoles() != null && !searchRequest.getRoles().isEmpty()) {
       Set<Long> userIds = findUserIdsByRoles(searchRequest.getRoles());
       if (userIds.isEmpty()) {

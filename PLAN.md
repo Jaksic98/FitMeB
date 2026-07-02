@@ -93,8 +93,9 @@ Sve stavke potvrđene punim test suite-om: 79/79 testova prolazi, 0 failure/erro
 
 ### Dopuna Modula 4/5 — Admin pretraga (§12 SPEC.md)
 
-- [ ] `UserController` — search endpoint (`GET /api/users/search?q=...`) koji pretražuje po `username`, `email`, `phoneNumber` (simple `ILIKE` ili Querydsl `ContainsIgnoreCase`).
-- [ ] `AppointmentController` (admin) — filter parametri na `GET /api/appointments`: `userId`, `pilatesId`, `dateFrom`, `dateTo` (opciono). Implementirati kao Querydsl ili dinamičke `Specification<Appointment>`.
+- [x] `UserController` — umesto zasebnog `/search` endpoint-a (kako SPEC.md labavo predlaže), prošireno postojeće `GET /api/users` (`UserSearchRequestDTO`/`UserQueryRepositoryImpl`, već ima Querydsl + paging) sa opcionim `q` poljem — Querydsl OR-predikat (`containsIgnoreCase`) preko `username`/`email`/`phoneNumber`, AND-ovan sa postojećim filterima. Izbegnuta paralelna search infrastruktura (DRY/YAGNI).
+- [x] `AppointmentController` (admin) — `GET /api/appointments` prošireno sa `AppointmentSearchRequestDTO` (`userId`, `pilatesId`, `dateFrom`, `dateTo`, sve opciono) kroz `@ModelAttribute`. `AppointmentService.getAllAppointments` filtrira in-memory (isti "flat list, admin-managed" pattern kao `getAvailableAppointments`/`filterToActiveTerminAndPilates`) umesto novog Querydsl repository-ja — Appointment je i dalje admin-scale, ne user-scale.
+- [x] Testovi: `UserServiceIT` (`q` pogađa telefon), `AppointmentServiceIT` (`userId`, `pilatesId`, `dateFrom`/`dateTo` filteri), `AppointmentControllerIT` mock ažuriran na novi `getAllAppointments(filter)` signature. Full IT suite 87/87.
 
 ## Modul 8 — TerminTemplate i generisanje Termina (§7 SPEC.md)
 

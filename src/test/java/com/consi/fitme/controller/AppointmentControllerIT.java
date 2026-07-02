@@ -54,7 +54,7 @@ class AppointmentControllerIT {
             .status(AppointmentStatus.AVAILABLE)
             .build();
 
-    when(service.getAllAppointments()).thenReturn(List.of(appointmentDto));
+    when(service.getAllAppointments(any())).thenReturn(List.of(appointmentDto));
     when(service.getAppointment(1L)).thenReturn(appointmentDto);
     when(service.deleteAppointment(1L)).thenReturn(new MessageResponseDTO("deleted"));
 
