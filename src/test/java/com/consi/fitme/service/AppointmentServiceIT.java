@@ -74,6 +74,7 @@ class AppointmentServiceIT {
 
     assertThat(booked.getStatus()).isEqualTo(AppointmentStatus.BOOKED);
     assertThat(booked.getUserId()).isEqualTo(client.getId());
+    assertThat(booked.getUserFullName()).isEqualTo(client.getFullName());
 
     User persistedClient = userRepository.findById(client.getId()).orElseThrow();
     assertThat(persistedClient.getRemainingAppointments()).isEqualTo(2);
@@ -243,9 +244,7 @@ class AppointmentServiceIT {
   void
       givenBookedAppointmentLessThan12hAway_whenClientCancels_thenThrowsAppointmentCancelWindowExpiredException() {
     UserDTO client = createActiveClient(seed(), 3);
-    Long appointmentId =
-        createAppointment(
-            LocalDate.now(), LocalTime.now().plusMinutes(5), LocalTime.now().plusMinutes(65));
+    Long appointmentId = createAppointmentForCancelWindowTest(LocalDateTime.now().plusMinutes(5));
     authenticateAs(client.getId(), "CLIENT");
     service.bookAppointment(
         BookAppointmentRequestDTO.builder().appointmentId(appointmentId).build());
@@ -384,9 +383,7 @@ class AppointmentServiceIT {
   void givenBookedAppointmentLessThan12hAway_whenAdminCancels_thenSucceedsWithoutWindowCheck() {
     UserDTO client = createActiveClient(seed(), 3);
     UserDTO admin = createActiveAdmin(seed());
-    Long appointmentId =
-        createAppointment(
-            LocalDate.now(), LocalTime.now().plusMinutes(5), LocalTime.now().plusMinutes(65));
+    Long appointmentId = createAppointmentForCancelWindowTest(LocalDateTime.now().plusMinutes(5));
 
     authenticateAs(client.getId(), "CLIENT");
     service.bookAppointment(
@@ -438,6 +435,27 @@ class AppointmentServiceIT {
     List<AppointmentDTO> appointments = service.getByUserId(client.getId());
 
     assertThat(appointments).extracting(AppointmentDTO::getId).contains(appointmentId);
+  }
+
+  @Test
+  void givenAvailableAndBookedAppointments_whenGetAllAppointments_thenReturnsOnlyBooked() {
+    UserDTO client = createActiveClient(seed(), 3);
+    Long bookedAppointmentId =
+        createAppointment(farFutureDate(), LocalTime.of(9, 0), LocalTime.of(10, 0));
+    Long availableAppointmentId =
+        createAppointment(farFutureDate(), LocalTime.of(11, 0), LocalTime.of(12, 0));
+    authenticateAs(client.getId(), "CLIENT");
+    service.bookAppointment(
+        BookAppointmentRequestDTO.builder().appointmentId(bookedAppointmentId).build());
+
+    List<AppointmentDTO> appointments = service.getAllAppointments();
+
+    assertThat(appointments).extracting(AppointmentDTO::getId).contains(bookedAppointmentId);
+    assertThat(appointments)
+        .extracting(AppointmentDTO::getId)
+        .doesNotContain(availableAppointmentId);
+    assertThat(appointments)
+        .allSatisfy(dto -> assertThat(dto.getStatus()).isEqualTo(AppointmentStatus.BOOKED));
   }
 
   @Test
@@ -521,7 +539,12 @@ class AppointmentServiceIT {
 
   private Long createAppointmentForCancelWindowTest(LocalDateTime terminStart) {
     LocalTime startTime = terminStart.toLocalTime();
-    return createAppointment(terminStart.toLocalDate(), startTime, startTime.plusMinutes(30));
+    return createAppointment(terminStart.toLocalDate(), startTime, capEndOfDay(startTime, 30));
+  }
+
+  private LocalTime capEndOfDay(LocalTime startTime, long durationMinutes) {
+    LocalTime endTime = startTime.plusMinutes(durationMinutes);
+    return endTime.isAfter(startTime) ? endTime : LocalTime.of(23, 59);
   }
 
   private void authenticateAs(Long userId, String roleCode) {

@@ -85,9 +85,11 @@ Sve stavke potvrđene punim test suite-om: 79/79 testova prolazi, 0 failure/erro
 
 ### Dopuna Modula 4/5 — AppointmentDTO izmene (§11 SPEC.md)
 
-- [ ] Proveriti da li `User` ima `firstName`/`lastName` ili samo `fullName` — trenutno je `fullName` jedino polje; dodati `userFullName` u `AppointmentDTO` (join na `users` tabelu).
-- [ ] `AppointmentRepository` query za `getAvailableAppointments` i `getByUserId` da uključi `userFullName` — verovatno kroz custom `@Query` sa JOIN ili projekciju.
-- [ ] Admin "Rezervacije" i CLIENT "Moji termini" endpointi po defaultu vraćaju samo `status = BOOKED` (dodati filter u service ili opcioni `status` query param).
+- [x] `User` ima samo `fullName` (nema odvojena `firstName`/`lastName`) — nema potrebe za migracijom. Dodato `userFullName` u `AppointmentDTO`, uz zadržan `userId` (isti obrazac kao postojeći `pilatesId`+`pilatesName`, `terminId`+`terminDate/StartTime/EndTime`).
+- [x] `AppointmentService.enrich`/`toDto` batch-učitavaju `User` mapu (isti pattern kao `Termin`/`Pilates` mape) umesto custom Querydsl JOIN-a — dovoljno za trenutnu skalu (admin-managed liste, ne user-scale).
+- [x] `getAllAppointments()` (admin "Rezervacije" tab) filtrira na `status = BOOKED`. `getByUserId` (CLIENT "Moji termini") nije trebalo menjati — `userId` se po invarijanti servisa uvek postavlja/briše zajedno sa `BOOKED`/`AVAILABLE` statusom, pa `findAllByUserId` već vraća samo BOOKED redove.
+- [x] Testovi: `AppointmentServiceIT` — `userFullName` popunjen posle booking-a, `getAllAppointments` isključuje AVAILABLE slotove. Full suite 84/84 (83 IT + `FitmeApplicationTests`).
+- [x] Usput ispravljen pre-existeći flaky bug u `AppointmentServiceIT` (dva testa su računala termin end-time preko `LocalTime.now().plusMinutes(...)` bez rollover-a na sledeći dan, pa su padala kad se testovi pokrenu blizu ponoći) — dodat `capEndOfDay` helper i konsolidovano na `createAppointmentForCancelWindowTest`.
 
 ### Dopuna Modula 4/5 — Admin pretraga (§12 SPEC.md)
 

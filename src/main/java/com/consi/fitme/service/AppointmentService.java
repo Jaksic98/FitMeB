@@ -27,6 +27,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -52,7 +53,7 @@ public class AppointmentService {
   private final AuditLogService auditLogService;
 
   public List<AppointmentDTO> getAllAppointments() {
-    return enrich(repository.findAll());
+    return enrich(repository.findAllByStatus(AppointmentStatus.BOOKED));
   }
 
   public AppointmentDTO getAppointment(Long id) {
@@ -283,6 +284,12 @@ public class AppointmentService {
     List<Long> terminIds = appointments.stream().map(Appointment::getTerminId).distinct().toList();
     List<Long> pilatesIds =
         appointments.stream().map(Appointment::getPilatesId).distinct().toList();
+    List<Long> userIds =
+        appointments.stream()
+            .map(Appointment::getUserId)
+            .filter(Objects::nonNull)
+            .distinct()
+            .toList();
 
     Map<Long, Termin> terminById =
         terminRepository.findAllById(terminIds).stream()
@@ -290,24 +297,38 @@ public class AppointmentService {
     Map<Long, Pilates> pilatesById =
         pilatesRepository.findAllById(pilatesIds).stream()
             .collect(Collectors.toMap(Pilates::getId, Function.identity()));
+    Map<Long, User> userById =
+        userRepository.findAllById(userIds).stream()
+            .collect(Collectors.toMap(User::getId, Function.identity()));
 
     return appointments.stream()
-        .map(a -> toDto(a, terminById.get(a.getTerminId()), pilatesById.get(a.getPilatesId())))
+        .map(
+            a ->
+                toDto(
+                    a,
+                    terminById.get(a.getTerminId()),
+                    pilatesById.get(a.getPilatesId()),
+                    userById.get(a.getUserId())))
         .toList();
   }
 
   private AppointmentDTO toDto(Appointment appointment) {
     Termin termin = terminRepository.findById(appointment.getTerminId()).orElse(null);
     Pilates pilates = pilatesRepository.findById(appointment.getPilatesId()).orElse(null);
-    return toDto(appointment, termin, pilates);
+    User user =
+        appointment.getUserId() != null
+            ? userRepository.findById(appointment.getUserId()).orElse(null)
+            : null;
+    return toDto(appointment, termin, pilates, user);
   }
 
-  private AppointmentDTO toDto(Appointment appointment, Termin termin, Pilates pilates) {
+  private AppointmentDTO toDto(Appointment appointment, Termin termin, Pilates pilates, User user) {
     return AppointmentDTO.builder()
         .id(appointment.getId())
         .terminId(appointment.getTerminId())
         .pilatesId(appointment.getPilatesId())
         .userId(appointment.getUserId())
+        .userFullName(user != null ? user.getFullName() : null)
         .status(appointment.getStatus())
         .terminDate(termin != null ? termin.getDate() : null)
         .terminStartTime(termin != null ? termin.getStartTime() : null)

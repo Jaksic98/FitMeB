@@ -14,6 +14,7 @@ public class AppointmentDTO {
   private final Long terminId;
   private final Long pilatesId;
   private final Long userId;
+  private final String userFullName;
   private final AppointmentStatus status;
   private final LocalDate terminDate;
   private final LocalTime terminStartTime;
