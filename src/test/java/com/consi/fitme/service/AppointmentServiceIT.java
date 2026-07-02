@@ -27,6 +27,7 @@ import com.consi.fitme.model.entity.User;
 import com.consi.fitme.repository.AppointmentRepository;
 import com.consi.fitme.repository.UserRepository;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
@@ -179,6 +180,50 @@ class AppointmentServiceIT {
 
     assertThatThrownBy(() -> service.updateAppointment(appointmentId, cancelRequest))
         .isInstanceOf(AppointmentCancelWindowExpiredException.class);
+  }
+
+  @Test
+  void
+      givenBookedAppointmentExactly12hAway_whenClientCancels_thenThrowsAppointmentCancelWindowExpiredException() {
+    UserDTO client = createActiveClient(seed(), 3);
+    Long appointmentId = createAppointmentForCancelWindowTest(LocalDateTime.now().plusHours(12));
+    authenticateAs(client.getId(), "CLIENT");
+    service.bookAppointment(
+        BookAppointmentRequestDTO.builder().appointmentId(appointmentId).build());
+    UpdateAppointmentRequestDTO cancelRequest = UpdateAppointmentRequestDTO.builder().build();
+
+    assertThatThrownBy(() -> service.updateAppointment(appointmentId, cancelRequest))
+        .isInstanceOf(AppointmentCancelWindowExpiredException.class);
+  }
+
+  @Test
+  void
+      givenBookedAppointment11h59mAway_whenClientCancels_thenThrowsAppointmentCancelWindowExpiredException() {
+    UserDTO client = createActiveClient(seed(), 3);
+    Long appointmentId =
+        createAppointmentForCancelWindowTest(LocalDateTime.now().plusHours(11).plusMinutes(59));
+    authenticateAs(client.getId(), "CLIENT");
+    service.bookAppointment(
+        BookAppointmentRequestDTO.builder().appointmentId(appointmentId).build());
+    UpdateAppointmentRequestDTO cancelRequest = UpdateAppointmentRequestDTO.builder().build();
+
+    assertThatThrownBy(() -> service.updateAppointment(appointmentId, cancelRequest))
+        .isInstanceOf(AppointmentCancelWindowExpiredException.class);
+  }
+
+  @Test
+  void givenBookedAppointment12h01mAway_whenClientCancels_thenSucceeds() {
+    UserDTO client = createActiveClient(seed(), 3);
+    Long appointmentId =
+        createAppointmentForCancelWindowTest(LocalDateTime.now().plusHours(12).plusMinutes(1));
+    authenticateAs(client.getId(), "CLIENT");
+    service.bookAppointment(
+        BookAppointmentRequestDTO.builder().appointmentId(appointmentId).build());
+
+    AppointmentDTO canceled =
+        service.updateAppointment(appointmentId, UpdateAppointmentRequestDTO.builder().build());
+
+    assertThat(canceled.getStatus()).isEqualTo(AppointmentStatus.AVAILABLE);
   }
 
   @Test
@@ -399,6 +444,11 @@ class AppointmentServiceIT {
         .findFirst()
         .orElseThrow()
         .getId();
+  }
+
+  private Long createAppointmentForCancelWindowTest(LocalDateTime terminStart) {
+    LocalTime startTime = terminStart.toLocalTime();
+    return createAppointment(terminStart.toLocalDate(), startTime, startTime.plusMinutes(30));
   }
 
   private void authenticateAs(Long userId, String roleCode) {

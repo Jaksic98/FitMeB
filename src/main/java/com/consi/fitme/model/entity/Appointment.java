@@ -9,6 +9,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -42,4 +43,9 @@ public class Appointment {
   @Column(nullable = false, length = 20)
   @Builder.Default
   private AppointmentStatus status = AppointmentStatus.AVAILABLE;
+
+  @Version
+  @Column(nullable = false)
+  @Builder.Default
+  private Long version = 0L;
 }

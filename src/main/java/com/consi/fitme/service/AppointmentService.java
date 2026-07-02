@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -58,9 +59,10 @@ public class AppointmentService {
 
   public List<AppointmentDTO> getAvailableAppointments(LocalDate dateFilter) {
     List<Appointment> available = repository.findAllByStatus(AppointmentStatus.AVAILABLE);
+    List<Appointment> bookable = filterToActiveTerminAndPilates(available);
 
     if (dateFilter == null) {
-      return enrich(available);
+      return enrich(bookable);
     }
 
     List<Long> terminIdsForDate =
@@ -69,7 +71,7 @@ public class AppointmentService {
             .toList();
 
     return enrich(
-        available.stream().filter(a -> terminIdsForDate.contains(a.getTerminId())).toList());
+        bookable.stream().filter(a -> terminIdsForDate.contains(a.getTerminId())).toList());
   }
 
   public List<AppointmentDTO> getByUserId(Long userId) {
@@ -86,9 +88,7 @@ public class AppointmentService {
     User currentUser = resolveCurrentUser();
 
     Appointment appointment = findOrThrow(bookAppointmentRequestDTO.getAppointmentId());
-    if (appointment.getStatus() != AppointmentStatus.AVAILABLE) {
-      throw new AppointmentNotAvailableException();
-    }
+    ensureSlotBookable(appointment);
 
     Long targetUserId;
     if (isAdmin) {
@@ -110,13 +110,16 @@ public class AppointmentService {
       if (remaining == null || remaining <= 0) {
         throw new NoRemainingAppointmentsException();
       }
-      targetUser.setRemainingAppointments(remaining - 1);
-      userRepository.save(targetUser);
     }
 
     appointment.setStatus(AppointmentStatus.BOOKED);
     appointment.setUserId(targetUserId);
-    Appointment saved = repository.save(appointment);
+    Appointment saved = claimSlot(appointment);
+
+    if (!isAdmin) {
+      targetUser.setRemainingAppointments(targetUser.getRemainingAppointments() - 1);
+      userRepository.save(targetUser);
+    }
 
     AppointmentDTO dto = toDto(saved);
     auditLogService.logCreate(ENTITY_TYPE, saved.getId(), dto);
@@ -168,9 +171,7 @@ public class AppointmentService {
   private AppointmentDTO reschedule(
       Appointment sourceAppointment, Long targetAppointmentId, AppointmentDTO sourceOldState) {
     Appointment targetAppointment = findOrThrow(targetAppointmentId);
-    if (targetAppointment.getStatus() != AppointmentStatus.AVAILABLE) {
-      throw new AppointmentNotAvailableException();
-    }
+    ensureSlotBookable(targetAppointment);
     AppointmentDTO targetOldState = toDto(targetAppointment);
 
     Long bookedUserId = sourceAppointment.getUserId();
@@ -181,12 +182,59 @@ public class AppointmentService {
 
     targetAppointment.setStatus(AppointmentStatus.BOOKED);
     targetAppointment.setUserId(bookedUserId);
-    Appointment savedTarget = repository.save(targetAppointment);
+    Appointment savedTarget = claimSlot(targetAppointment);
 
     auditLogService.logUpdate(ENTITY_TYPE, savedSource.getId(), sourceOldState, toDto(savedSource));
     AppointmentDTO targetNewState = toDto(savedTarget);
     auditLogService.logUpdate(ENTITY_TYPE, savedTarget.getId(), targetOldState, targetNewState);
     return targetNewState;
+  }
+
+  private void ensureSlotBookable(Appointment appointment) {
+    if (appointment.getStatus() != AppointmentStatus.AVAILABLE) {
+      throw new AppointmentNotAvailableException();
+    }
+    Termin termin = terminRepository.findById(appointment.getTerminId()).orElse(null);
+    Pilates pilates = pilatesRepository.findById(appointment.getPilatesId()).orElse(null);
+    if (termin == null
+        || termin.getStatus() != Status.ACTIVE
+        || pilates == null
+        || pilates.getStatus() != Status.ACTIVE) {
+      throw new AppointmentNotAvailableException();
+    }
+  }
+
+  private Appointment claimSlot(Appointment appointment) {
+    try {
+      return repository.saveAndFlush(appointment);
+    } catch (ObjectOptimisticLockingFailureException e) {
+      throw new AppointmentNotAvailableException();
+    }
+  }
+
+  private List<Appointment> filterToActiveTerminAndPilates(List<Appointment> appointments) {
+    Map<Long, Termin> terminById =
+        terminRepository
+            .findAllById(appointments.stream().map(Appointment::getTerminId).distinct().toList())
+            .stream()
+            .collect(Collectors.toMap(Termin::getId, Function.identity()));
+    Map<Long, Pilates> pilatesById =
+        pilatesRepository
+            .findAllById(appointments.stream().map(Appointment::getPilatesId).distinct().toList())
+            .stream()
+            .collect(Collectors.toMap(Pilates::getId, Function.identity()));
+
+    return appointments.stream()
+        .filter(
+            a -> {
+              Termin termin = terminById.get(a.getTerminId());
+              Pilates pilates = pilatesById.get(a.getPilatesId());
+              return termin != null
+                  && termin.getStatus() == Status.ACTIVE
+                  && pilates != null
+                  && pilates.getStatus() == Status.ACTIVE;
+            })
+        .toList();
   }
 
   private void ensureWithinCancelWindow(Appointment appointment) {

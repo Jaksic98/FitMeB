@@ -107,7 +107,7 @@ CRUD: `AppointmentController`/`AppointmentService`/`AppointmentRepository`.
 
 ### 4.6 Admin pristup Appointment-u
 
-- Admin ima full CRUD bez ograničenja (bez 12h pravila, bez credit logike) — koristi se za ručne korekcije.
+- Admin ima full CRUD bez ograničenja gore navedenih pravila (bez 12h pravila, bez credit logike) — koristi se za ručne korekcije.
 - Klijent ima samo: `getByUserId` (sve appointmente tog korisnika), `create` (booking), `update` (cancel/reschedule kao gore).
 
 ## 5. API pregled
@@ -123,3 +123,89 @@ CRUD: `AppointmentController`/`AppointmentService`/`AppointmentRepository`.
 ## 6. Van scope-a za sada (buduće)
 
 Servis za notifikacije (email) i dodavanje u kalendar telefona (QR kod ili push) — eksplicitno odloženo u originalnom opisu ("feature za kasnije"). `emailNotifications`/`calendarNotifications` flagovi na `User` postoje od početka (da se ne radi migracija kasnije), ali se ne koriste aktivno dok se servis ne implementira.
+
+---
+
+# Dopuna (Talas 2)
+
+Nastavak numeracije iz gornjeg dela ovog fajla (§1–§6). Ovde isključivo nove/izmenjene poslovne celine.
+
+## 7. TerminTemplate (raspored) i generisanje Termina
+
+### 7.1 Entitet
+
+| Polje | Tip |
+|---|---|
+| id | Long |
+| dayOfWeek | enum (`DayOfWeek` — MON..SUN) |
+| startTime | LocalTime |
+| endTime | LocalTime |
+| status | `Status` (ACTIVE/INACTIVE/DELETED) |
+
+Proširuje `BaseAuditableEntity`. Validacija preklapanja: isti princip kao kod `Termin` (§3), ali po `dayOfWeek` umesto po datumu — ne dozvoliti da se dva ACTIVE šablona istog dana u nedelji preklapaju vremenski.
+
+`Termin` (postojeći entitet, §3) dobija novo polje: `templateId` (FK na `TerminTemplate`, **nullable**). `null` = termin koji je admin ručno uneo van šablona (postojeći Modul 3 CRUD ostaje nepromenjen za ovu svrhu — služi za fino podešavanje).
+
+### 7.2 Generisanje
+
+- Trigger: create `TerminTemplate` (status ACTIVE) → `TerminGenerationService.generateForTemplate(template)`.
+- Akcija: za svaki budući datum koji pada na `template.dayOfWeek`, u prozoru generisanja (vidi §7.3), insert `Termin` red (`date`, `startTime`, `endTime`, `templateId`, `status=ACTIVE`) ako već ne postoji red sa istim `(templateId, date)`.
+- Idempotentno, isti pattern kao postojeći `AppointmentGenerationService` (§4.2).
+- Svaki insertovan `Termin` red prolazi kroz **postojeću** logiku iz Modula 3/4 (`TerminService.createTermin` → `AppointmentGenerationService.generateForTermin`) — Appointment slotovi nastaju automatski, bez novog koda u tom delu.
+
+### 7.3 Prozor generisanja (rolling horizon)
+
+- Umesto fiksnog "do kraja godine" (cliff problem 1. januara), koristi se **rotirajući horizont**: uvek generisano `today + 90 dana` unapred (vrednost konfigurabilna).
+- Scheduled job (`@Scheduled`, jednom dnevno, npr. 02:00) prolazi kroz sve ACTIVE `TerminTemplate` i poziva `generateForTemplate` ponovo — idempotentno dopunjava ono što fali kako horizont klizi napred.
+
+### 7.4 Brisanje šablona
+
+- Soft-delete `TerminTemplate` (status → DELETED).
+- Kaskadno: svi **budući** `Termin` redovi vezani za taj `templateId` koji **nemaju nijedan BOOKED Appointment** → status DELETED.
+- `Termin` redovi (budući ili prošli) koji imaju BOOKED Appointment **ne brišu se automatski** — ostaju netaknuti, admin ih ručno rešava kroz postojeći Modul 3 CRUD. Isto pravilo važi za ručno brisanje pojedinačnog `Termin` reda (dopuna postojećeg `TerminService.deleteTermin`).
+- Prošli (istorijski) `Termin` redovi se nikad ne brišu kaskadno.
+
+### 7.5 Dodavanje novog šablona
+
+- Novi `TerminTemplate` (npr. sreda 11-12h) generiše redove **samo** za sebe (`templateId` filter) — ne dira postojeće šablone/redove.
+
+## 8. Notifikacije (WhatsApp + SMS)
+
+### 8.1 SMS verifikacija broja telefona
+
+- Provajder: **Infobip** (preporuka — pokriva RS brojeve lokalno, isti provajder može i SMS i WhatsApp Business API u jednom ugovoru/SDK-u).
+- Flow: korisnik unosi broj telefona pri registraciji → SMS OTP (6 cifara, važi 5 min) → unosi kod → `phoneVerified = true`.
+- Ovo **zamenjuje** email verifikaciju kao gejt za `ACTIVE` status (vidi §9).
+
+### 8.2 WhatsApp podsetnici (WhatsApp Business API, Infobip)
+
+- Trigger: za svaki novi `BOOKED` Appointment, zakazuju se **dva** podsetnika:
+  - **24h pre** `Termin.startTime` (datum + vreme termina).
+  - **1h pre** `Termin.startTime`.
+- Implementacija: scheduled job (npr. svakih 5-10 min) koji proverava Appointment-e čiji je reminder-prozor "sada" i šalje WhatsApp poruku preko Infobip API-ja na `user.phoneNumber`.
+- Na cancel/reschedule appointmenta, zakazani-a-još-neposlat-i reminder se mora poništiti (da se ne pošalje podsetnik za otkazan termin).
+- Potreban novi entitet ili flag za praćenje "da li je reminder X već poslat za Appointment Y" (da scheduled job ne šalje duplo) — npr. `AppointmentReminder` tabela (appointmentId, type [DAY_BEFORE/HOUR_BEFORE], sentAt).
+
+## 9. Izmena Modula 1 — ukidanje email verifikacije
+
+- Email se i dalje čuva i mora biti **unique** (postojeći constraint ostaje), ali se **ne verifikuje** (ne šalje se aktivacioni link).
+- `phoneNumber` postaje **obavezno polje** pri registraciji (trenutno opciono).
+- Aktivacija naloga (`INACTIVE → ACTIVE`) ide isključivo kroz SMS verifikaciju telefona (§8.1) ili admin ručno (postojeći fallback iz §4.1 ostaje).
+- `ActivationTokenService`/email-link flow iz postojećeg Modula 1 se gasi (ili ostaje neaktivan u kodu radi minimalnog rizika — odluka za review sa Claude Code u toku implementacije).
+
+## 10. Trajanje članarine — 35 dana od prvog termina
+
+- Novo polje na `User`: `membershipExpiresAt` (LocalDate, nullable — `null` dok korisnik nije rezervisao nijedan termin).
+- Trigger: prvi uspešan booking (prvi `Appointment` koji za tog korisnika pređe u BOOKED) → `membershipExpiresAt = bookingDate + 35 dana`.
+- Booking provera (dopuna §4.3): pored `remainingAppointments > 0`, ako `membershipExpiresAt` postoji i prošao je → booking odbijen (nov `ErrorCode`, npr. `MEMBERSHIP_EXPIRED`), bez obzira na preostale kredite.
+- Otvoreno pitanje (van scope ove dopune, za kasnije): da li kupovina novog paketa nakon isteka resetuje `membershipExpiresAt` na "+35 dana od sledećeg bookinga" ili produžava od datuma kupovine? Trenutni prototip ima "Kupovina paketa — uskoro" placeholder, pa ovo nije blokirajuće.
+
+## 11. Prikaz rezervacija — ime/prezime umesto ID-a; samo zakazani termini
+
+- `AppointmentDTO` (i bilo koja lista/projekcija koja se vraća adminu ili klijentu) mora vraćati `userFirstName`/`userLastName` (ili `userFullName`) umesto golog `userId`. **Proveriti da li `User` entitet već ima `firstName`/`lastName` polja** — ako ne, dodati ih (mala Flyway migracija).
+- Admin "Rezervacije" prikaz (i klijent "Moji termini") mora filtrirati na `status = BOOKED` — trenutno (po prototipu) lista prikazuje sve Appointment redove uključujući AVAILABLE slotove, što treba ispraviti.
+
+## 12. Admin pretraga — korisnici i rezervacije
+
+- `UserController`: novi search endpoint (Querydsl ili jednostavan `findByUsernameContainingOrEmailContainingOrPhoneNumberContaining`) za admin "Korisnici" tab.
+- `AppointmentController` (admin): filter parametri — korisnik, sprava (`pilatesId`), datum termina (raspon ili tačan datum). UI filteri kopirati iz `FitMe_Pilates__standalone_.html` prototipa (već postoji `terminFilter` logika tamo kao referenca za UX, ne za kod).
