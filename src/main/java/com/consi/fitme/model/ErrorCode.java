@@ -59,6 +59,7 @@ public enum ErrorCode {
       2706, "Korisnik je obavezan za admin rezervaciju", HttpStatus.BAD_REQUEST),
   APPOINTMENT_NOT_BOOKED(
       2707, "Appointment nije rezervisan, otkazivanje/izmena nije moguća", HttpStatus.CONFLICT),
+  MEMBERSHIP_EXPIRED(2708, "Članarina je istekla", HttpStatus.BAD_REQUEST),
 
   // 3xxx – generic resources
   RESOURCE_NOT_FOUND(3001, "Resurs nije pronađen", HttpStatus.NOT_FOUND);

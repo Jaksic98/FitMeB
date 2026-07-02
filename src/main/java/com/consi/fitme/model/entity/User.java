@@ -3,6 +3,7 @@ package com.consi.fitme.model.entity;
 import com.consi.fitme.model.Status;
 import jakarta.persistence.*;
 import java.io.Serial;
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -64,6 +65,9 @@ public class User implements UserDetails {
   @Column(name = "calendar_notifications", nullable = false)
   @Builder.Default
   private Boolean calendarNotifications = true;
+
+  @Column(name = "membership_expires_at")
+  private LocalDate membershipExpiresAt;
 
   @Transient private List<SimpleGrantedAuthority> grantedAuthorities;
 

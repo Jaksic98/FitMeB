@@ -57,11 +57,13 @@ Status legenda: `[ ]` nije početo, `[~]` u toku, `[x]` završeno.
 
 ## Modul 6 — Testovi
 
-- [ ] `*IT` testovi za sve nove servise (Postgres via docker compose), pattern kao `UserServiceIT`/`AuthServiceIT`.
-- [ ] Controller testovi sa `@MockitoBean` + `@WithMockUser(roles = "...")` za `@PreAuthorize` provere (403 za CLIENT na admin-only akcijama).
+- [x] `*IT` testovi za sve nove servise (Postgres via docker compose), pattern kao `UserServiceIT`/`AuthServiceIT` — `PilatesServiceIT`, `TerminServiceIT`, `AppointmentServiceIT`, `AppointmentGenerationServiceIT`.
+- [x] Controller testovi sa `@MockitoBean` + `@WithMockUser(roles = "...")` za `@PreAuthorize` provere (403 za CLIENT na admin-only akcijama) — `PilatesControllerIT`, `TerminControllerIT`, `AppointmentControllerIT`.
 - [x] Test 12h cancel pravila (granica: tačno 12h, 11h59m, 12h01m) — `AppointmentServiceIT` (`givenBookedAppointmentExactly12hAway...`, `givenBookedAppointment11h59mAway...`, `givenBookedAppointment12h01mAway...`).
-- [ ] Test termin-overlap validacije.
-- [ ] Test idempotencije generisanja slotova.
+- [x] Test termin-overlap validacije — `TerminServiceIT` (`givenOverlappingTermin_whenCreateTermin_thenThrowsTerminOverlapException`, `givenExistingTermin_whenUpdateWithOverlappingAnotherTermin_thenThrowsTerminOverlapException`).
+- [x] Test idempotencije generisanja slotova — `AppointmentGenerationServiceIT.givenSlotsAlreadyGenerated_whenGenerationCalledAgain_thenNoDuplicatesAreCreated`.
+
+Sve stavke potvrđene punim test suite-om: 79/79 testova prolazi, 0 failure/error (`mvn test`, 2026-07-02).
 
 ## Dopune postojećih modula (Talas 2)
 
@@ -74,10 +76,12 @@ Status legenda: `[ ]` nije početo, `[~]` u toku, `[x]` završeno.
 
 ### Dopuna Modula 5 — Membership 35 dana (§10 SPEC.md)
 
-- [ ] Novo polje `membershipExpiresAt` (LocalDate, nullable) na `User` entitetu + Flyway migracija.
-- [ ] U `AppointmentService.bookAppointment`: ako `membershipExpiresAt != null && membershipExpiresAt.isBefore(today)` → odbiti sa `MEMBERSHIP_EXPIRED` (novi `ErrorCode` u 21xx opsegu).
-- [ ] Na prvom uspešnom bookingu (pre toga `membershipExpiresAt == null`) → setovati `membershipExpiresAt = today + 35 dana`.
-- [ ] `UserDTO` proširiti sa `membershipExpiresAt` poljem.
+- [x] Novo polje `membershipExpiresAt` (LocalDate, nullable) na `User` entitetu + Flyway migracija (`V10__add_membership_expires_at.sql`).
+- [x] U `AppointmentService.bookAppointment`: ako `membershipExpiresAt != null && membershipExpiresAt.isBefore(today)` → odbiti sa `MEMBERSHIP_EXPIRED` (`ErrorCode` 2708, appointment domen 27xx opseg umesto 21xx — pravilo se proverava tokom bookinga, isti blok kao `NO_REMAINING_APPOINTMENTS`). Provera važi samo za CLIENT (ADMIN bypass, isti pattern kao credit-check).
+- [x] Na prvom uspešnom bookingu (pre toga `membershipExpiresAt == null`) → setovati `membershipExpiresAt = today + 35 dana`. Ovo se dešava nezavisno od toga da li je booking inicirao CLIENT ili ADMIN u ime klijenta (trigger je "prvo korišćenje", ne trigeruje se dopunom kredita).
+- [x] `UserDTO` proširena sa `membershipExpiresAt` poljem.
+- [x] Testovi u `AppointmentServiceIT`: prvi booking postavlja datum, drugi booking ga ne menja, isteklo članstvo blokira CLIENT ali ne i ADMIN booking.
+- Otvoreno (van scope-a ove dopune, per SPEC.md §10): šta se dešava sa `membershipExpiresAt` kad istekne pa se doda novi paket — trenutno ništa ne resetuje datum niti otključava booking dok admin ručno ne interveniše.
 
 ### Dopuna Modula 4/5 — AppointmentDTO izmene (§11 SPEC.md)
 

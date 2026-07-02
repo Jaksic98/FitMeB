@@ -3,6 +3,7 @@ package com.consi.fitme.dto;
 import com.consi.fitme.dto.base.BaseUserDTO;
 import com.consi.fitme.model.Role;
 import com.consi.fitme.model.Status;
+import java.time.LocalDate;
 import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
@@ -19,4 +20,5 @@ public class UserDTO extends BaseUserDTO {
   private final Integer remainingAppointments;
   private final Boolean emailNotifications;
   private final Boolean calendarNotifications;
+  private final LocalDate membershipExpiresAt;
 }

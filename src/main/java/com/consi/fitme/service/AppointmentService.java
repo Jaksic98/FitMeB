@@ -10,6 +10,7 @@ import com.consi.fitme.exception.appointment.AppointmentNotBookedException;
 import com.consi.fitme.exception.appointment.AppointmentNotFoundException;
 import com.consi.fitme.exception.appointment.AppointmentOwnershipException;
 import com.consi.fitme.exception.appointment.AppointmentUserRequiredException;
+import com.consi.fitme.exception.appointment.MembershipExpiredException;
 import com.consi.fitme.exception.appointment.NoRemainingAppointmentsException;
 import com.consi.fitme.exception.user.UserNotFoundException;
 import com.consi.fitme.model.AppointmentStatus;
@@ -42,6 +43,7 @@ public class AppointmentService {
   private static final String ENTITY_TYPE = "APPOINTMENT";
   private static final String ROLE_ADMIN = "ROLE_ADMIN";
   private static final int CANCEL_WINDOW_HOURS = 12;
+  private static final int MEMBERSHIP_DURATION_DAYS = 35;
 
   private final AppointmentRepository repository;
   private final TerminRepository terminRepository;
@@ -106,6 +108,10 @@ public class AppointmentService {
             .orElseThrow(() -> new UserNotFoundException(targetUserId));
 
     if (!isAdmin) {
+      if (targetUser.getMembershipExpiresAt() != null
+          && targetUser.getMembershipExpiresAt().isBefore(LocalDate.now())) {
+        throw new MembershipExpiredException();
+      }
       Integer remaining = targetUser.getRemainingAppointments();
       if (remaining == null || remaining <= 0) {
         throw new NoRemainingAppointmentsException();
@@ -116,10 +122,13 @@ public class AppointmentService {
     appointment.setUserId(targetUserId);
     Appointment saved = claimSlot(appointment);
 
+    if (targetUser.getMembershipExpiresAt() == null) {
+      targetUser.setMembershipExpiresAt(LocalDate.now().plusDays(MEMBERSHIP_DURATION_DAYS));
+    }
     if (!isAdmin) {
       targetUser.setRemainingAppointments(targetUser.getRemainingAppointments() - 1);
-      userRepository.save(targetUser);
     }
+    userRepository.save(targetUser);
 
     AppointmentDTO dto = toDto(saved);
     auditLogService.logCreate(ENTITY_TYPE, saved.getId(), dto);

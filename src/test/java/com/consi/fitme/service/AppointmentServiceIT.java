@@ -18,6 +18,7 @@ import com.consi.fitme.exception.appointment.AppointmentNotAvailableException;
 import com.consi.fitme.exception.appointment.AppointmentNotBookedException;
 import com.consi.fitme.exception.appointment.AppointmentOwnershipException;
 import com.consi.fitme.exception.appointment.AppointmentUserRequiredException;
+import com.consi.fitme.exception.appointment.MembershipExpiredException;
 import com.consi.fitme.exception.appointment.NoRemainingAppointmentsException;
 import com.consi.fitme.model.AppointmentStatus;
 import com.consi.fitme.model.Role;
@@ -89,6 +90,78 @@ class AppointmentServiceIT {
 
     assertThatThrownBy(() -> service.bookAppointment(bookRequest))
         .isInstanceOf(NoRemainingAppointmentsException.class);
+  }
+
+  @Test
+  void givenClientWithNoPriorBooking_whenBookAppointment_thenSetsMembershipExpiresAt35DaysOut() {
+    UserDTO client = createActiveClient(seed(), 3);
+    Long appointmentId =
+        createAppointment(farFutureDate(), LocalTime.of(9, 0), LocalTime.of(10, 0));
+    authenticateAs(client.getId(), "CLIENT");
+
+    service.bookAppointment(
+        BookAppointmentRequestDTO.builder().appointmentId(appointmentId).build());
+
+    User persistedClient = userRepository.findById(client.getId()).orElseThrow();
+    assertThat(persistedClient.getMembershipExpiresAt()).isEqualTo(LocalDate.now().plusDays(35));
+  }
+
+  @Test
+  void
+      givenClientWithActiveMembership_whenBookAnotherAppointment_thenMembershipExpiresAtUnchanged() {
+    UserDTO client = createActiveClient(seed(), 3);
+    Long firstAppointmentId =
+        createAppointment(farFutureDate(), LocalTime.of(9, 0), LocalTime.of(10, 0));
+    authenticateAs(client.getId(), "CLIENT");
+    service.bookAppointment(
+        BookAppointmentRequestDTO.builder().appointmentId(firstAppointmentId).build());
+    LocalDate expiryAfterFirstBooking =
+        userRepository.findById(client.getId()).orElseThrow().getMembershipExpiresAt();
+
+    Long secondAppointmentId =
+        createAppointment(farFutureDate(), LocalTime.of(11, 0), LocalTime.of(12, 0));
+    service.bookAppointment(
+        BookAppointmentRequestDTO.builder().appointmentId(secondAppointmentId).build());
+
+    User persistedClient = userRepository.findById(client.getId()).orElseThrow();
+    assertThat(persistedClient.getMembershipExpiresAt()).isEqualTo(expiryAfterFirstBooking);
+  }
+
+  @Test
+  void givenClientWithExpiredMembership_whenBookAppointment_thenThrowsMembershipExpiredException() {
+    UserDTO client = createActiveClient(seed(), 3);
+    User user = userRepository.findById(client.getId()).orElseThrow();
+    user.setMembershipExpiresAt(LocalDate.now().minusDays(1));
+    userRepository.save(user);
+    Long appointmentId =
+        createAppointment(farFutureDate(), LocalTime.of(9, 0), LocalTime.of(10, 0));
+    authenticateAs(client.getId(), "CLIENT");
+    BookAppointmentRequestDTO bookRequest =
+        BookAppointmentRequestDTO.builder().appointmentId(appointmentId).build();
+
+    assertThatThrownBy(() -> service.bookAppointment(bookRequest))
+        .isInstanceOf(MembershipExpiredException.class);
+  }
+
+  @Test
+  void givenAdminBookingForClientWithExpiredMembership_whenBookAppointment_thenSucceeds() {
+    UserDTO admin = createActiveAdmin(seed());
+    UserDTO client = createActiveClient(seed(), 3);
+    User user = userRepository.findById(client.getId()).orElseThrow();
+    user.setMembershipExpiresAt(LocalDate.now().minusDays(1));
+    userRepository.save(user);
+    Long appointmentId =
+        createAppointment(farFutureDate(), LocalTime.of(9, 0), LocalTime.of(10, 0));
+    authenticateAs(admin.getId(), "ADMIN");
+
+    AppointmentDTO booked =
+        service.bookAppointment(
+            BookAppointmentRequestDTO.builder()
+                .appointmentId(appointmentId)
+                .userId(client.getId())
+                .build());
+
+    assertThat(booked.getStatus()).isEqualTo(AppointmentStatus.BOOKED);
   }
 
   @Test

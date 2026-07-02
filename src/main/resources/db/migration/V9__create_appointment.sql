@@ -4,6 +4,7 @@ CREATE TABLE appointment (
     pilates_id BIGINT NOT NULL,
     user_id BIGINT,
     status VARCHAR(20) NOT NULL DEFAULT 'AVAILABLE',
+    version BIGINT NOT NULL DEFAULT 0,
     CONSTRAINT fk_appointment_termin FOREIGN KEY (termin_id) REFERENCES termin (id),
     CONSTRAINT fk_appointment_pilates FOREIGN KEY (pilates_id) REFERENCES pilates (id),
     CONSTRAINT fk_appointment_user FOREIGN KEY (user_id) REFERENCES users (id),

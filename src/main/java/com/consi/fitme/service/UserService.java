@@ -200,6 +200,7 @@ public class UserService {
         .remainingAppointments(user.getRemainingAppointments())
         .emailNotifications(user.getEmailNotifications())
         .calendarNotifications(user.getCalendarNotifications())
+        .membershipExpiresAt(user.getMembershipExpiresAt())
         .build();
   }
 
