@@ -30,6 +30,7 @@ public abstract class BaseUserDTO {
   @Size(max = 254, message = "Email može imati najviše 254 karaktera")
   private String email;
 
+  @NotBlank(message = "Broj telefona je obavezan")
   @Pattern(regexp = "^\\+?[0-9 ]{6,30}$", message = "Broj telefona nije u ispravnom formatu")
   private String phoneNumber;
 }

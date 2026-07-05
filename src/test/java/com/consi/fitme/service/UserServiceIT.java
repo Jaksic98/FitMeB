@@ -46,6 +46,7 @@ class UserServiceIT {
             .username(username)
             .fullName("Integration Test User")
             .email(email)
+            .phoneNumber("+381601234567")
             .password("itest.user.fitme123!")
             .build();
 
@@ -82,6 +83,7 @@ class UserServiceIT {
                 .username(username)
                 .fullName("Integration Default Role User")
                 .email(email)
+                .phoneNumber("+381601234567")
                 .password("itest.default.role.fitme123!")
                 .build());
 
@@ -123,6 +125,7 @@ class UserServiceIT {
                 .username(username)
                 .fullName("Integration Default Status User")
                 .email(email)
+                .phoneNumber("+381601234567")
                 .password("itest.default.status.fitme123!")
                 .build());
 
@@ -141,6 +144,7 @@ class UserServiceIT {
                 .username(username)
                 .fullName("Integration Profile Update User")
                 .email(email)
+                .phoneNumber("+381601234567")
                 .password("itest.profile.update.fitme123!")
                 .build());
 
@@ -172,6 +176,7 @@ class UserServiceIT {
                 .username(username)
                 .fullName("Integration Partial Update User")
                 .email(email)
+                .phoneNumber("+381601234567")
                 .password("itest.partial.update.fitme123!")
                 .build());
 
@@ -196,6 +201,7 @@ class UserServiceIT {
                 .username("itest.password.valid." + seed)
                 .fullName("Integration Password Valid")
                 .email("itest.password.valid." + seed + "@fitme.com")
+                .phoneNumber("+381601234567")
                 .password("Aa1@aaaa")
                 .build());
 
@@ -211,6 +217,7 @@ class UserServiceIT {
             .username("itest.password.no.special." + seed)
             .fullName("Integration Password No Special")
             .email("itest.password.no.special." + seed + "@fitme.com")
+            .phoneNumber("+381601234567")
             .password("Password1")
             .build();
 
@@ -226,6 +233,7 @@ class UserServiceIT {
             .username("itest.password.no.digit." + seed)
             .fullName("Integration Password No Digit")
             .email("itest.password.no.digit." + seed + "@fitme.com")
+            .phoneNumber("+381601234567")
             .password("Password@")
             .build();
 
@@ -245,6 +253,7 @@ class UserServiceIT {
                 .username(username)
                 .fullName("Integration Delete User")
                 .email(email)
+                .phoneNumber("+381601234567")
                 .password("itest.delete.user.fitme123!")
                 .build());
 
@@ -270,6 +279,7 @@ class UserServiceIT {
             .username(username)
             .fullName("Integration Get User")
             .email(email)
+            .phoneNumber("+381601234567")
             .password("itest.get.fitme123!")
             .build();
 
@@ -293,6 +303,7 @@ class UserServiceIT {
             .username(prefix + ".b")
             .fullName("Integration List B")
             .email(prefix + ".b@fitme.com")
+            .phoneNumber("+381601234567")
             .password("itest.list.fitme123!")
             .build());
 
@@ -301,6 +312,7 @@ class UserServiceIT {
             .username(prefix + ".a")
             .fullName("Integration List A")
             .email(prefix + ".a@fitme.com")
+            .phoneNumber("+381601234567")
             .password("itest.list.fitme123!")
             .build());
 
@@ -335,6 +347,7 @@ class UserServiceIT {
                 .username(prefix + ".admin")
                 .fullName("Integration Role Admin")
                 .email(prefix + ".admin@fitme.com")
+                .phoneNumber("+381601234567")
                 .password("itest.role.filter.fitme123!")
                 .build());
 
@@ -348,6 +361,7 @@ class UserServiceIT {
                 .username(prefix + ".other")
                 .fullName("Integration Role Other")
                 .email(prefix + ".other@fitme.com")
+                .phoneNumber("+381601234567")
                 .password("itest.role.filter.fitme123!")
                 .build());
 
@@ -422,6 +436,7 @@ class UserServiceIT {
                 .username(username)
                 .fullName("Integration Deleted User")
                 .email(email)
+                .phoneNumber("+381601234567")
                 .password("itest.deleted.fitme123!")
                 .build());
 
@@ -443,6 +458,7 @@ class UserServiceIT {
                 .username(prefix + ".one")
                 .fullName("Exclude Deleted One")
                 .email(prefix + ".one@fitme.com")
+                .phoneNumber("+381601234567")
                 .password("itest.exclude.fitme123!")
                 .build());
 
@@ -452,6 +468,7 @@ class UserServiceIT {
                 .username(prefix + ".two")
                 .fullName("Exclude Deleted Two")
                 .email(prefix + ".two@fitme.com")
+                .phoneNumber("+381601234567")
                 .password("itest.exclude.fitme123!")
                 .build());
 
@@ -486,6 +503,7 @@ class UserServiceIT {
                 .username(sharedUsername)
                 .fullName("Active Username Owner")
                 .email("itest.active.owner." + seed + "@fitme.com")
+                .phoneNumber("+381601234567")
                 .password("itest.update.active.fitme123!")
                 .build());
 
@@ -504,6 +522,7 @@ class UserServiceIT {
                 .username(sharedUsername)
                 .fullName("Inactive Same Username")
                 .email("itest.inactive.same.username." + seed + "@fitme.com")
+                .phoneNumber("+381601234567")
                 .password("itest.update.active.fitme123!")
                 .build());
 
@@ -530,6 +549,7 @@ class UserServiceIT {
                 .username(sharedUsername)
                 .fullName("Active Username Owner")
                 .email("itest.inactive.allowed.active." + seed + "@fitme.com")
+                .phoneNumber("+381601234567")
                 .password("itest.update.inactive.fitme123!")
                 .build());
 
@@ -542,6 +562,7 @@ class UserServiceIT {
                 .username(sharedUsername)
                 .fullName("Inactive Same Username")
                 .email("itest.inactive.allowed.inactive." + seed + "@fitme.com")
+                .phoneNumber("+381601234567")
                 .password("itest.update.inactive.fitme123!")
                 .build());
 

@@ -81,6 +81,7 @@ class UserControllerIT {
                       "username": "new.user",
                       "fullName": "New User",
                       "email": "new.user@fitme.com",
+                      "phoneNumber": "+381601234567",
                       "org_unit_id": 1,
                       "password": "Aa1@aaaa",
                       "roles": ["CLIENT"]
@@ -116,6 +117,7 @@ class UserControllerIT {
                       "username": "new.user",
                       "fullName": "New User",
                       "email": "new.user@fitme.com",
+                      "phoneNumber": "+381601234567",
                       "org_unit_id": 1,
                       "password": "Aa1@aaaa",
                       "roles": ["CLIENT"]

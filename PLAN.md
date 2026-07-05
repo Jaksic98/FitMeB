@@ -69,10 +69,11 @@ Sve stavke potvrđene punim test suite-om: 79/79 testova prolazi, 0 failure/erro
 
 ### Dopuna Modula 1 — Zamena email verifikacije SMS-om (§9 SPEC.md)
 
-- [ ] `phoneNumber` postaje obavezno polje pri registraciji (`@NotBlank` u `RegisterRequestDTO`, Flyway migracija `NOT NULL` ako kolona nije već NOT NULL).
-- [ ] Novo polje `phoneVerified` (boolean, default false) na `User` entitetu + Flyway migracija.
-- [ ] `ActivationTokenService` / email-link flow ostaje u kodu ali se **ne poziva** — komentariše se poziv u `AuthService.register` uz napomenu da ga zamenjuje SMS OTP (Modul 9).
+- [x] `phoneNumber` obavezan: `@NotBlank` u `BaseUserDTO` (važi za register I admin create — odluka korisnika 2026-07-05: DB-level NOT NULL + backfill, ne samo app-level) + `V10__require_phone_and_add_phone_verified.sql` (backfill `'000000'` za NULL, pa `SET NOT NULL`). `UpdateUserRequestDTO` netaknut (patch semantika, null = bez izmene; NOT NULL kolona + null-ignore mapper garantuju da telefon ne može biti obrisan).
+- [x] Novo polje `phoneVerified` (Boolean, default false, isti pattern kao `emailNotifications`) na `User` + ista V10 migracija.
+- [x] `ActivationTokenService` / email-link flow ostaje u kodu ali se **ne poziva** — poziv u `AuthService.register` zakomentarisan uz napomenu; `GET /api/auth/activate` endpoint i dalje funkcionalan.
 - [ ] `INACTIVE → ACTIVE` tranzicija pri uspešnoj SMS verifikaciji (poziva se iz `SmsVerificationService`, Modul 9) — admin fallback `PUT /api/users/{id}` ostaje kao i ranije.
+- [x] Uzgredno (otkriveno tokom verifikacije): `mvn test` je pokretao samo `FitmeApplicationTests` — surefire 3.5.4 default includes ne hvataju `*IT` klase; dodata eksplicitna `maven-surefire-plugin` includes konfiguracija u `pom.xml`. Novi `AuthControllerIT` (register validacija telefona kroz MockMvc). Full suite 93/93 (2026-07-05).
 
 ### Dopuna Modula 5 — Membership 35 dana (§10 SPEC.md)
 

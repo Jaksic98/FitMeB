@@ -51,7 +51,7 @@ public class User implements UserDetails {
   @Builder.Default
   private Integer failedLoginAttempts = 0;
 
-  @Column(name = "phone_number")
+  @Column(name = "phone_number", nullable = false)
   private String phoneNumber;
 
   @Column(name = "remaining_appointments", nullable = false)
@@ -65,6 +65,10 @@ public class User implements UserDetails {
   @Column(name = "calendar_notifications", nullable = false)
   @Builder.Default
   private Boolean calendarNotifications = true;
+
+  @Column(name = "phone_verified", nullable = false)
+  @Builder.Default
+  private Boolean phoneVerified = false;
 
   @Column(name = "membership_expires_at")
   private LocalDate membershipExpiresAt;

@@ -46,6 +46,7 @@ class AuthServiceIT {
                 .username("itest.login.inactive." + seed)
                 .fullName("Integration Inactive Login")
                 .email(email)
+                .phoneNumber("+381601234567")
                 .password("itest.login.inactive.fitme123!")
                 .build());
 
@@ -187,6 +188,25 @@ class AuthServiceIT {
   }
 
   @Test
+  void givenValidRegistration_whenRegister_thenPhoneVerifiedIsFalse() {
+    String seed = String.valueOf(System.currentTimeMillis());
+    String email = "itest.register.phoneverified." + seed + "@fitme.com";
+
+    UserDTO registeredUser =
+        service.register(
+            RegisterRequestDTO.builder()
+                .username("itest.register.phoneverified." + seed)
+                .fullName("Integration Register Phone Verified")
+                .email(email)
+                .phoneNumber("+381601234567")
+                .password("itest.register.fitme123!")
+                .build());
+
+    User persistedUser = userRepository.findById(registeredUser.getId()).orElseThrow();
+    assertThat(persistedUser.getPhoneVerified()).isFalse();
+  }
+
+  @Test
   void givenRegisteredUser_whenActivateWithValidToken_thenStatusBecomesActive() {
     String seed = String.valueOf(System.currentTimeMillis());
     String email = "itest.activate." + seed + "@fitme.com";
@@ -197,6 +217,7 @@ class AuthServiceIT {
                 .username("itest.activate." + seed)
                 .fullName("Integration Activate User")
                 .email(email)
+                .phoneNumber("+381601234567")
                 .password("itest.activate.fitme123!")
                 .build());
 
@@ -219,6 +240,7 @@ class AuthServiceIT {
                 .username("itest.activate.twice." + seed)
                 .fullName("Integration Activate Twice User")
                 .email(email)
+                .phoneNumber("+381601234567")
                 .password("itest.activate.twice.fitme123!")
                 .build());
 
@@ -252,6 +274,7 @@ class AuthServiceIT {
                 .username("itest.login.user." + seed)
                 .fullName("Integration Login User")
                 .email(email)
+                .phoneNumber("+381601234567")
                 .password(password)
                 .build());
 
