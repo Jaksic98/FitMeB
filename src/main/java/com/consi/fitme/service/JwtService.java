@@ -61,6 +61,7 @@ public class JwtService {
     cookie.setSecure(jwtProperties.isCookieSecure());
     cookie.setPath("/");
     cookie.setMaxAge(jwtProperties.getCookieExpiry());
+    cookie.setAttribute("SameSite", "None");
     return cookie;
   }
 

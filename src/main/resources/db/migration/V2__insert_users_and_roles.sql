@@ -1,9 +1,9 @@
 INSERT INTO users (username, full_name, email, password, status) VALUES
-('adam.adamovic', 'Adam Adamović', 'adam.adamovic@fitme.com', '$2b$12$OCmpzwmd9tSOZ2e7cAMVI.AjeKqWyF1B.Foc8EQ6eYIPEnhP1RoCW', 1),
-('marko.markovic', 'Marko Marković', 'marko.markovic@fitme.com', '$2b$12$KlkFUq0EJTOnvqU11Z3QTOluG4PJ8Xiaz8XckWjnSaEM5f8r4qHNW', 1),
-('jovana.jovanovic', 'Jovana Jovanović', 'jovana.jovanovic@fitme.com', '$2b$12$LQRFMoKMPn3jYfzlEN2lUOZTypZFaF02Yhal6hE3fSvKLvLTnfzUi', 1),
-('petar.petrovic', 'Petar Petrović', 'petar.petrovic@fitme.com', '$2b$12$yeuw44BYOBm/J/hQ212VzuDz7hyV6XHm6nJ.87G7SV/AJrU3T9F6i', 1),
-('ana.anic', 'Ana Anić', 'ana.anic@fitme.com', '$2b$12$toh3RD0Jn5hzf3e5RvBsTO0OXex6kLMncW5PmQtLxTP64Y7dBRPZ.', 1);
+('adam.adamovic', 'Adam Adamović', 'adam.adamovic@fitme.com', '$2b$10$mIO6USmhOnzy4aJT3RCUyO34fWSJnOYHPPUw8frWlzP2J7gS3ORoO', 1),
+('marko.markovic', 'Marko Marković', 'marko.markovic@fitme.com', '$2b$10$NDrXpXbuIaPXlF/LkoGs8.OqI9dsm8HYfkkW3OscCZdkMrFTvpbOe', 1),
+('jovana.jovanovic', 'Jovana Jovanović', 'jovana.jovanovic@fitme.com', '$2b$10$LcgxkrTS1i4IsvRq5dk3WOgMYEPfeBrsLFyPSiG.Qu4QXST1sT8fy', 1),
+('petar.petrovic', 'Petar Petrović', 'petar.petrovic@fitme.com', '$2b$10$ZvqE4RBc/AGHnpS5Fzdjleb7KeIUtOqlOMq3vv6g07o6gXDO1.YO.', 1),
+('ana.anic', 'Ana Anić', 'ana.anic@fitme.com', '$2b$10$Fk9xL1Dv2w52/tTLd9VLceeBBEzUznqMuj.jLukPu1qIWoBK/g4/e', 1);
 
 INSERT INTO roles (code, name, description) VALUES
 ('SUPER_ADMIN', 'Administrator sistema', 'Potpuni pristup sistemu'),

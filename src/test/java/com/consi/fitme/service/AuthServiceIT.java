@@ -135,6 +135,7 @@ class AuthServiceIT {
     assertThat(persisted.getFailedLoginAttempts()).isZero();
     assertThat(successResponse.getCookies()).isNotNull();
     assertThat(successResponse.getCookies()).isNotEmpty();
+    assertThat(successResponse.getCookies()[0].getAttribute("SameSite")).isEqualTo("None");
   }
 
   @Test

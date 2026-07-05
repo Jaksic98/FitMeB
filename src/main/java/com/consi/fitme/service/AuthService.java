@@ -173,6 +173,7 @@ public class AuthService {
     cookie.setSecure(jwtService.isCookieSecure());
     cookie.setPath("/");
     cookie.setMaxAge(0);
+    cookie.setAttribute("SameSite", "None");
     return cookie;
   }
 
