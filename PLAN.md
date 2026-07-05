@@ -122,11 +122,12 @@ Izmena obima (odluka korisnika 2026-07-05): verifikacija ide preko **WhatsApp-a*
   - `POST /api/auth/phone/verify-otp { phoneNumber, code }` — pogrešan/istekao kod → `OTP_INVALID` 2901; uspeh: `phoneVerified = true`, OTP kolone se briše, `INACTIVE → ACTIVE` + reset failedLoginAttempts.
   - Migracija `V12__add_otp_and_phone_unique.sql`: de-dup `'000000'` backfill-a iz V10 (`'000000' || id`), partial unique index, `otp_hash`/`otp_expires_at`.
   - `UserService.ensurePhoneNumberUnique` u create/update (`PHONE_NUMBER_ALREADY_EXISTS` 2105). Testovi: `PhoneVerificationServiceIT` (7), dopune `UserServiceIT`/`AuthControllerIT`; postojeći testovi prešli na jedinstvene brojeve po korisniku. Full suite 129/129 (2026-07-05).
-- [ ] **WhatsApp podsetnici** (`AppointmentReminderService`):
-  - Entitet `AppointmentReminder` (`id`, `appointmentId`, `type` [DAY_BEFORE/HOUR_BEFORE], `scheduledAt`, `sentAt` nullable) + Flyway migracija.
-  - Na `bookAppointment` → insert dva `AppointmentReminder` reda (24h i 1h pre `Termin.startTime`).
-  - Na cancel/reschedule → obrisati neslan-e `AppointmentReminder` redove za taj appointment.
-  - `@Scheduled` job svakih 5 min (`ReminderScheduler`): pronađi `AppointmentReminder` gde `scheduledAt <= now AND sentAt IS NULL` → pošalji WhatsApp poruku putem Infobip → setuj `sentAt = now`.
+- [x] **WhatsApp podsetnici** (`AppointmentReminderService`):
+  - Entitet `AppointmentReminder` (`id`, `appointmentId` FK→`appointment` ON DELETE CASCADE, `type` [DAY_BEFORE/HOUR_BEFORE], `scheduledAt`, `sentAt` nullable) + `V13__create_appointment_reminder.sql`. Bez `BaseAuditableEntity` (isti obrazac kao `Appointment` — interno bookkeeping, ne treba audit trail).
+  - Na `bookAppointment` → insert dva `AppointmentReminder` reda (24h i 1h pre `Termin.startTime`), uvek oba bez obzira da li je `scheduledAt` već u prošlosti (npr. booking 30min pre termina) — namerna odluka radi KISS-a, prošli `scheduledAt` znači da scheduled job odmah pošalje podsetnik pri sledećem prolazu umesto da se tiho preskoči.
+  - Na cancel (`updateAppointment`, `targetAppointmentId` null) i reschedule (`reschedule`, izvorni appointment) → `cancelReminders` briše neslane redove; reschedule dodatno zakazuje nova dva reda za ciljni appointment (isti obrazac kao fresh booking).
+  - `ReminderScheduler` (`@Scheduled(cron = "0 */5 * * * *")`) poziva `AppointmentReminderService.sendDueReminders()` — pronalazi `scheduledAt <= now AND sentAt IS NULL`, šalje WhatsApp template (`infobip.templates.reminder`, već konfigurisan) sa placeholderima `[pilatesName, terminDate, terminStartTime]`, setuje `sentAt`. Admin hard-delete appointmenta (`DELETE /api/appointments/{id}`) ne zahteva eksplicitan `cancelReminders` poziv — FK `ON DELETE CASCADE` briše povezane reminder redove atomski.
+  - Testovi: `AppointmentReminderServiceIT` (6 — schedule/cancel/send-due/no-resend), dopune `AppointmentServiceIT` (3 — booking kreira 2 reda, cancel briše neslane, reschedule premešta na ciljni appointment). Full suite 138/138 (2026-07-05).
 
 ## Modul 7 — Van scope-a (buduće, ne implementirati sada)
 

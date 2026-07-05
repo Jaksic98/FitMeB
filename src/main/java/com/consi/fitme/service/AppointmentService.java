@@ -52,6 +52,7 @@ public class AppointmentService {
   private final PilatesRepository pilatesRepository;
   private final UserRepository userRepository;
   private final AuditLogService auditLogService;
+  private final AppointmentReminderService appointmentReminderService;
 
   public List<AppointmentDTO> getAllAppointments(AppointmentSearchRequestDTO filter) {
     List<Appointment> appointments = repository.findAllByStatus(AppointmentStatus.BOOKED);
@@ -154,6 +155,10 @@ public class AppointmentService {
     appointment.setUserId(targetUserId);
     Appointment saved = claimSlot(appointment);
 
+    Termin bookedTermin = terminRepository.findById(saved.getTerminId()).orElseThrow();
+    appointmentReminderService.scheduleReminders(
+        saved.getId(), LocalDateTime.of(bookedTermin.getDate(), bookedTermin.getStartTime()));
+
     if (targetUser.getMembershipExpiresAt() == null) {
       targetUser.setMembershipExpiresAt(LocalDate.now().plusDays(MEMBERSHIP_DURATION_DAYS));
     }
@@ -191,6 +196,7 @@ public class AppointmentService {
       appointment.setStatus(AppointmentStatus.AVAILABLE);
       appointment.setUserId(null);
       Appointment saved = repository.save(appointment);
+      appointmentReminderService.cancelReminders(saved.getId());
 
       AppointmentDTO newState = toDto(saved);
       auditLogService.logUpdate(ENTITY_TYPE, saved.getId(), oldState, newState);
@@ -220,10 +226,15 @@ public class AppointmentService {
     sourceAppointment.setStatus(AppointmentStatus.AVAILABLE);
     sourceAppointment.setUserId(null);
     Appointment savedSource = repository.save(sourceAppointment);
+    appointmentReminderService.cancelReminders(savedSource.getId());
 
     targetAppointment.setStatus(AppointmentStatus.BOOKED);
     targetAppointment.setUserId(bookedUserId);
     Appointment savedTarget = claimSlot(targetAppointment);
+
+    Termin targetTermin = terminRepository.findById(savedTarget.getTerminId()).orElseThrow();
+    appointmentReminderService.scheduleReminders(
+        savedTarget.getId(), LocalDateTime.of(targetTermin.getDate(), targetTermin.getStartTime()));
 
     auditLogService.logUpdate(ENTITY_TYPE, savedSource.getId(), sourceOldState, toDto(savedSource));
     AppointmentDTO targetNewState = toDto(savedTarget);

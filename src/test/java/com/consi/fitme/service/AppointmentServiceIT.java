@@ -22,10 +22,13 @@ import com.consi.fitme.exception.appointment.AppointmentUserRequiredException;
 import com.consi.fitme.exception.appointment.MembershipExpiredException;
 import com.consi.fitme.exception.appointment.NoRemainingAppointmentsException;
 import com.consi.fitme.model.AppointmentStatus;
+import com.consi.fitme.model.ReminderType;
 import com.consi.fitme.model.Role;
 import com.consi.fitme.model.Status;
 import com.consi.fitme.model.entity.Appointment;
+import com.consi.fitme.model.entity.AppointmentReminder;
 import com.consi.fitme.model.entity.User;
+import com.consi.fitme.repository.AppointmentReminderRepository;
 import com.consi.fitme.repository.AppointmentRepository;
 import com.consi.fitme.repository.UserRepository;
 import java.time.LocalDate;
@@ -56,6 +59,7 @@ class AppointmentServiceIT {
   @Autowired private PilatesService pilatesService;
   @Autowired private UserRepository userRepository;
   @Autowired private AppointmentRepository appointmentRepository;
+  @Autowired private AppointmentReminderRepository appointmentReminderRepository;
 
   @AfterEach
   void clearSecurityContext() {
@@ -378,6 +382,79 @@ class AppointmentServiceIT {
 
     assertThatThrownBy(() -> service.updateAppointment(originalAppointmentId, rescheduleRequest))
         .isInstanceOf(AppointmentNotAvailableException.class);
+  }
+
+  @Test
+  void givenAvailableAppointment_whenBooked_thenSchedulesDayBeforeAndHourBeforeReminders() {
+    UserDTO client = createActiveClient(seed(), 3);
+    LocalDate date = farFutureDate();
+    LocalTime startTime = LocalTime.of(9, 0);
+    Long appointmentId = createAppointment(date, startTime, LocalTime.of(10, 0));
+    authenticateAs(client.getId(), "CLIENT");
+
+    service.bookAppointment(
+        BookAppointmentRequestDTO.builder().appointmentId(appointmentId).build());
+
+    List<AppointmentReminder> reminders =
+        appointmentReminderRepository.findAllByAppointmentIdAndSentAtIsNull(appointmentId);
+    LocalDateTime terminStart = LocalDateTime.of(date, startTime);
+
+    assertThat(reminders).hasSize(2);
+    assertThat(reminders)
+        .extracting(AppointmentReminder::getType)
+        .containsExactlyInAnyOrder(ReminderType.DAY_BEFORE, ReminderType.HOUR_BEFORE);
+    assertThat(reminders)
+        .filteredOn(r -> r.getType() == ReminderType.DAY_BEFORE)
+        .extracting(AppointmentReminder::getScheduledAt)
+        .containsExactly(terminStart.minusHours(24));
+    assertThat(reminders)
+        .filteredOn(r -> r.getType() == ReminderType.HOUR_BEFORE)
+        .extracting(AppointmentReminder::getScheduledAt)
+        .containsExactly(terminStart.minusHours(1));
+  }
+
+  @Test
+  void givenBookedAppointmentWithReminders_whenClientCancels_thenDeletesUnsentReminders() {
+    UserDTO client = createActiveClient(seed(), 3);
+    Long appointmentId =
+        createAppointment(farFutureDate(), LocalTime.of(9, 0), LocalTime.of(10, 0));
+    authenticateAs(client.getId(), "CLIENT");
+    service.bookAppointment(
+        BookAppointmentRequestDTO.builder().appointmentId(appointmentId).build());
+
+    service.updateAppointment(appointmentId, UpdateAppointmentRequestDTO.builder().build());
+
+    assertThat(appointmentReminderRepository.findAllByAppointmentIdAndSentAtIsNull(appointmentId))
+        .isEmpty();
+  }
+
+  @Test
+  void
+      givenBookedAppointmentWithReminders_whenClientReschedules_thenMovesRemindersToTargetAppointment() {
+    UserDTO client = createActiveClient(seed(), 3);
+    Long originalAppointmentId =
+        createAppointment(farFutureDate(), LocalTime.of(9, 0), LocalTime.of(10, 0));
+    LocalDate targetDate = farFutureDate();
+    LocalTime targetStartTime = LocalTime.of(11, 0);
+    Long targetAppointmentId = createAppointment(targetDate, targetStartTime, LocalTime.of(12, 0));
+    authenticateAs(client.getId(), "CLIENT");
+    service.bookAppointment(
+        BookAppointmentRequestDTO.builder().appointmentId(originalAppointmentId).build());
+
+    service.updateAppointment(
+        originalAppointmentId,
+        UpdateAppointmentRequestDTO.builder().targetAppointmentId(targetAppointmentId).build());
+
+    assertThat(
+            appointmentReminderRepository.findAllByAppointmentIdAndSentAtIsNull(
+                originalAppointmentId))
+        .isEmpty();
+    List<AppointmentReminder> targetReminders =
+        appointmentReminderRepository.findAllByAppointmentIdAndSentAtIsNull(targetAppointmentId);
+    assertThat(targetReminders).hasSize(2);
+    assertThat(targetReminders)
+        .extracting(AppointmentReminder::getType)
+        .containsExactlyInAnyOrder(ReminderType.DAY_BEFORE, ReminderType.HOUR_BEFORE);
   }
 
   @Test
