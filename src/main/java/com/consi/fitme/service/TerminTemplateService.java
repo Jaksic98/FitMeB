@@ -8,10 +8,16 @@ import com.consi.fitme.exception.termintemplate.InvalidTerminTemplateTimeRangeEx
 import com.consi.fitme.exception.termintemplate.TerminTemplateNotFoundException;
 import com.consi.fitme.exception.termintemplate.TerminTemplateOverlapException;
 import com.consi.fitme.mapper.TerminTemplatePatchMapper;
+import com.consi.fitme.model.AppointmentStatus;
 import com.consi.fitme.model.Status;
+import com.consi.fitme.model.entity.Appointment;
+import com.consi.fitme.model.entity.Termin;
 import com.consi.fitme.model.entity.TerminTemplate;
+import com.consi.fitme.repository.AppointmentRepository;
+import com.consi.fitme.repository.TerminRepository;
 import com.consi.fitme.repository.TerminTemplateRepository;
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +30,9 @@ public class TerminTemplateService {
 
   private final TerminTemplateRepository repository;
   private final TerminTemplatePatchMapper patchMapper;
+  private final TerminRepository terminRepository;
+  private final AppointmentRepository appointmentRepository;
+  private final TerminGenerationService terminGenerationService;
 
   public List<TerminTemplateDTO> getAllTerminTemplates() {
     return repository.findAllByStatusNot(Status.DELETED).stream().map(this::toDto).toList();
@@ -46,6 +55,10 @@ public class TerminTemplateService {
     TerminTemplate terminTemplate =
         TerminTemplate.builder().dayOfWeek(dayOfWeek).startTime(startTime).endTime(endTime).build();
     TerminTemplate savedTerminTemplate = repository.save(terminTemplate);
+
+    if (savedTerminTemplate.getStatus() == Status.ACTIVE) {
+      terminGenerationService.generateForTemplate(savedTerminTemplate.getId());
+    }
 
     return toDto(savedTerminTemplate);
   }
@@ -80,6 +93,30 @@ public class TerminTemplateService {
     TerminTemplate terminTemplate = findActiveOrInactiveById(id);
     terminTemplate.setStatus(Status.DELETED);
     repository.save(terminTemplate);
+
+    LocalDate today = LocalDate.now();
+    List<Termin> futureTermini =
+        terminRepository.findAllByTemplateIdAndDateGreaterThanEqualAndStatusNot(
+            id, today, Status.DELETED);
+
+    for (Termin termin : futureTermini) {
+      boolean hasBookedAppointments =
+          appointmentRepository.existsByTerminIdAndStatus(termin.getId(), AppointmentStatus.BOOKED);
+
+      if (!hasBookedAppointments) {
+        termin.setStatus(Status.DELETED);
+        terminRepository.save(termin);
+      } else {
+        List<Appointment> availableAppointments =
+            appointmentRepository.findAllByTerminIdAndStatus(
+                termin.getId(), AppointmentStatus.AVAILABLE);
+        for (Appointment appointment : availableAppointments) {
+          appointment.setStatus(AppointmentStatus.CANCELED);
+          appointmentRepository.save(appointment);
+        }
+      }
+    }
+
     return new MessageResponseDTO("Uspešno obrisan šablon termina za ID: " + id);
   }
 

@@ -4,13 +4,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.consi.fitme.dto.TerminDTO;
+import com.consi.fitme.dto.request.CreatePilatesRequestDTO;
 import com.consi.fitme.dto.request.CreateTerminRequestDTO;
 import com.consi.fitme.dto.request.UpdateTerminRequestDTO;
 import com.consi.fitme.dto.response.MessageResponseDTO;
 import com.consi.fitme.exception.termin.InvalidTerminTimeRangeException;
+import com.consi.fitme.exception.termin.TerminDeleteBlockedException;
 import com.consi.fitme.exception.termin.TerminNotFoundException;
 import com.consi.fitme.exception.termin.TerminOverlapException;
+import com.consi.fitme.model.AppointmentStatus;
 import com.consi.fitme.model.Status;
+import com.consi.fitme.repository.AppointmentRepository;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -28,6 +32,8 @@ import org.springframework.transaction.annotation.Transactional;
 class TerminServiceIT {
 
   @Autowired private TerminService service;
+  @Autowired private PilatesService pilatesService;
+  @Autowired private AppointmentRepository appointmentRepository;
 
   @Test
   void givenNewTermin_whenCreated_thenStatusDefaultsToActive() {
@@ -229,6 +235,67 @@ class TerminServiceIT {
 
     assertThat(allTermini).extracting(TerminDTO::getId).contains(activeTermin.getId());
     assertThat(allTermini).extracting(TerminDTO::getId).doesNotContain(toDeleteTermin.getId());
+  }
+
+  @Test
+  void givenTerminWithBookedAppointment_whenDeleteTermin_thenThrowsTerminDeleteBlockedException() {
+    String seed = String.valueOf(System.currentTimeMillis());
+    pilatesService.createPilates(
+        CreatePilatesRequestDTO.builder().position("TDB1." + seed).name("Reformer").build());
+
+    LocalDate date = LocalDate.now().plusDays(uniqueDayOffset());
+
+    TerminDTO createdTermin =
+        service.createTermin(
+            CreateTerminRequestDTO.builder()
+                .date(date)
+                .startTime(LocalTime.of(9, 0))
+                .endTime(LocalTime.of(10, 0))
+                .build());
+
+    var existingAppointment =
+        appointmentRepository.findAll().stream()
+            .filter(a -> a.getTerminId().equals(createdTermin.getId()))
+            .findFirst()
+            .orElseThrow();
+
+    existingAppointment.setStatus(AppointmentStatus.BOOKED);
+    existingAppointment.setUserId(1L);
+    appointmentRepository.save(existingAppointment);
+
+    assertThatThrownBy(() -> service.deleteTermin(createdTermin.getId()))
+        .isInstanceOf(TerminDeleteBlockedException.class);
+  }
+
+  @Test
+  void givenTerminWithOnlyAvailableAppointments_whenDeleteTermin_thenSucceeds() {
+    String seed = String.valueOf(System.currentTimeMillis());
+    pilatesService.createPilates(
+        CreatePilatesRequestDTO.builder().position("TDA1." + seed).name("Cadillac").build());
+
+    LocalDate date = LocalDate.now().plusDays(uniqueDayOffset());
+
+    TerminDTO createdTermin =
+        service.createTermin(
+            CreateTerminRequestDTO.builder()
+                .date(date)
+                .startTime(LocalTime.of(9, 0))
+                .endTime(LocalTime.of(10, 0))
+                .build());
+
+    var availableAppointment =
+        appointmentRepository.findAll().stream()
+            .filter(a -> a.getTerminId().equals(createdTermin.getId()))
+            .findFirst()
+            .orElseThrow();
+
+    assertThat(availableAppointment.getStatus()).isEqualTo(AppointmentStatus.AVAILABLE);
+
+    MessageResponseDTO response = service.deleteTermin(createdTermin.getId());
+
+    assertThat(response.getMessage()).contains("Uspešno obrisan termin");
+    assertThatThrownBy(() -> service.getTermin(createdTermin.getId()))
+        .isInstanceOf(TerminNotFoundException.class);
   }
 
   private long uniqueDayOffset() {

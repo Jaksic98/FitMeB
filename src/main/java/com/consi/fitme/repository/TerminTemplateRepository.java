@@ -13,6 +13,8 @@ public interface TerminTemplateRepository extends JpaRepository<TerminTemplate, 
 
   List<TerminTemplate> findAllByStatusNot(Status status);
 
+  List<TerminTemplate> findAllByStatus(Status status);
+
   Optional<TerminTemplate> findByIdAndStatusNot(Long id, Status status);
 
   List<TerminTemplate> findAllByDayOfWeekAndStatus(DayOfWeek dayOfWeek, Status status);

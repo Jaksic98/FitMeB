@@ -5,11 +5,15 @@ import com.consi.fitme.dto.request.CreateTerminRequestDTO;
 import com.consi.fitme.dto.request.UpdateTerminRequestDTO;
 import com.consi.fitme.dto.response.MessageResponseDTO;
 import com.consi.fitme.exception.termin.InvalidTerminTimeRangeException;
+import com.consi.fitme.exception.termin.TerminDeleteBlockedException;
 import com.consi.fitme.exception.termin.TerminNotFoundException;
 import com.consi.fitme.exception.termin.TerminOverlapException;
 import com.consi.fitme.mapper.TerminPatchMapper;
+import com.consi.fitme.model.AppointmentStatus;
 import com.consi.fitme.model.Status;
 import com.consi.fitme.model.entity.Termin;
+import com.consi.fitme.model.entity.TerminTemplate;
+import com.consi.fitme.repository.AppointmentRepository;
 import com.consi.fitme.repository.TerminRepository;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -25,6 +29,7 @@ public class TerminService {
   private final TerminRepository repository;
   private final TerminPatchMapper patchMapper;
   private final AppointmentGenerationService appointmentGenerationService;
+  private final AppointmentRepository appointmentRepository;
 
   public List<TerminDTO> getAllTermini() {
     return repository.findAllByStatusNot(Status.DELETED).stream().map(this::toDto).toList();
@@ -77,9 +82,31 @@ public class TerminService {
     return toDto(repository.save(existingTermin));
   }
 
+  // Namerno bez @Transactional: poziva se samo iz TerminGenerationService.generateForTemplate
+  // (koji jeste transakcioni); sopstveni tx proxy bi na TerminOverlapException markirao
+  // zajedničku transakciju rollback-only pre nego što je pozivalac uhvati i preskoči datum.
+  Termin createTerminFromTemplate(TerminTemplate template, LocalDate date) {
+    ensureValidTimeRange(template.getStartTime(), template.getEndTime());
+    ensureNoOverlap(date, template.getStartTime(), template.getEndTime(), null);
+
+    Termin termin =
+        Termin.builder()
+            .date(date)
+            .startTime(template.getStartTime())
+            .endTime(template.getEndTime())
+            .templateId(template.getId())
+            .build();
+    return repository.save(termin);
+  }
+
   @Transactional
   public MessageResponseDTO deleteTermin(Long id) {
     Termin termin = findActiveOrInactiveById(id);
+
+    if (appointmentRepository.existsByTerminIdAndStatus(id, AppointmentStatus.BOOKED)) {
+      throw new TerminDeleteBlockedException(id);
+    }
+
     termin.setStatus(Status.DELETED);
     repository.save(termin);
     return new MessageResponseDTO("Uspešno obrisan termin za ID: " + id);

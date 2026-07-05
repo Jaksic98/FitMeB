@@ -18,4 +18,9 @@ public interface TerminRepository extends JpaRepository<Termin, Long> {
   Optional<Termin> findByIdAndStatusNot(Long id, Status status);
 
   List<Termin> findByDateAndStatus(LocalDate date, Status status);
+
+  boolean existsByTemplateIdAndDate(Long templateId, LocalDate date);
+
+  List<Termin> findAllByTemplateIdAndDateGreaterThanEqualAndStatusNot(
+      Long templateId, LocalDate date, Status status);
 }
