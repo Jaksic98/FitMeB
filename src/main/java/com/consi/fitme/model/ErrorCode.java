@@ -46,6 +46,8 @@ public enum ErrorCode {
       2602, "Termin se preklapa sa postojećim terminom istog datuma", HttpStatus.CONFLICT),
   TERMIN_INVALID_TIME_RANGE(
       2603, "Vreme završetka termina mora biti posle vremena početka", HttpStatus.BAD_REQUEST),
+  TERMIN_DELETE_BLOCKED(
+      2604, "Termin nije moguće obrisati jer ima rezervisane appointmente", HttpStatus.CONFLICT),
 
   // 27xx – appointment domain
   APPOINTMENT_NOT_FOUND(2701, "Appointment nije pronađen", HttpStatus.NOT_FOUND),
@@ -60,6 +62,15 @@ public enum ErrorCode {
   APPOINTMENT_NOT_BOOKED(
       2707, "Appointment nije rezervisan, otkazivanje/izmena nije moguća", HttpStatus.CONFLICT),
   MEMBERSHIP_EXPIRED(2708, "Članarina je istekla", HttpStatus.BAD_REQUEST),
+
+  // 28xx – termin template domain
+  TERMIN_TEMPLATE_NOT_FOUND(2801, "Šablon termina nije pronađen", HttpStatus.NOT_FOUND),
+  TERMIN_TEMPLATE_OVERLAP(
+      2802,
+      "Šablon termina se preklapa sa postojećim šablonom istog dana u nedelji",
+      HttpStatus.CONFLICT),
+  TERMIN_TEMPLATE_INVALID_TIME_RANGE(
+      2803, "Vreme završetka šablona mora biti posle vremena početka", HttpStatus.BAD_REQUEST),
 
   // 3xxx – generic resources
   RESOURCE_NOT_FOUND(3001, "Resurs nije pronađen", HttpStatus.NOT_FOUND);

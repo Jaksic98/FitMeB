@@ -100,11 +100,11 @@ Sve stavke potvrđene punim test suite-om: 79/79 testova prolazi, 0 failure/erro
 
 ## Modul 8 — TerminTemplate i generisanje Termina (§7 SPEC.md)
 
-- [ ] Entitet `TerminTemplate` (`id`, `dayOfWeek`, `startTime`, `endTime`, `status`), proširuje `BaseAuditableEntity`.
-- [ ] Flyway migracija `termin_template` tabele.
-- [ ] Flyway migracija: dodati `template_id` (nullable FK → `termin_template`) na `termin` tabelu.
-- [ ] Validacija preklapanja šablona: isti `dayOfWeek` + vremenski interval → `TerminTemplateOverlapException` (novi `ErrorCode` u 28xx opsegu).
-- [ ] `TerminTemplateRepository`, `TerminTemplateService`, `TerminTemplateController` (admin CRUD), DTO-i. Soft delete kroz `Status`.
+- [x] Entitet `TerminTemplate` (`id`, `dayOfWeek` kao `java.time.DayOfWeek` `@Enumerated(STRING)`, `startTime`, `endTime`; `status` nasleđen), proširuje `BaseAuditableEntity`.
+- [x] Flyway migracija `V11__create_termin_template.sql` (struktura po uzoru na V8, uklj. `chk_termin_template_time_order`).
+- [x] `template_id` (nullable FK → `termin_template`) na `termin` tabeli — ista V11 migracija + `Termin.templateId` (plain `Long`, isti stil kao `Appointment.terminId`).
+- [x] Validacija preklapanja šablona: isti `dayOfWeek` + vremenski interval → `TerminTemplateOverlapException`; dodatno `InvalidTerminTemplateTimeRangeException` (isti par pravila kao `TerminService`). `ErrorCode` 2801–2803 (+ 2604 `TERMIN_DELETE_BLOCKED` unapred, za dopunu `deleteTermin` ispod).
+- [x] `TerminTemplateRepository`, `TerminTemplateService`, `TerminTemplateController` (admin CRUD, `/api/termin-templates`), DTO-i + `TerminTemplatePatchMapper`. Soft delete kroz `Status`. Testovi: `TerminTemplateServiceIT` (10), `TerminTemplateControllerIT` (2). Full suite 105/105 (2026-07-05).
 - [ ] `TerminGenerationService.generateForTemplate(template)`: za svaki budući datum u rolling horizonu koji pada na `template.dayOfWeek` → insert `Termin` ako `(templateId, date)` već ne postoji. Poziva `AppointmentGenerationService.generateForTermin` za svaki insertovan termin (isti lanac kao Modul 3/4).
 - [ ] Rolling horizon = `today + 90 dana`; vrednost konfigurisati kao `application.scheduling.termin-horizon-days` u `application.properties`.
 - [ ] `@Scheduled` daily job (`TerminScheduler`, 02:00) — iterira sve ACTIVE `TerminTemplate` i poziva `generateForTemplate` (idempotentno popunjava klizni horizont).
