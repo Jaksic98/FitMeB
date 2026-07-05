@@ -568,7 +568,7 @@ class AppointmentServiceIT {
                 .username("itest.appt.client." + seed)
                 .fullName("Appointment Test Client")
                 .email("itest.appt.client." + seed + "@fitme.com")
-                .phoneNumber("+381601234567")
+                .phoneNumber("+3816" + seed + "1")
                 .password("itest.appt.fitme123!")
                 .remainingAppointments(remainingAppointments)
                 .build());
@@ -583,7 +583,7 @@ class AppointmentServiceIT {
                 .username("itest.appt.admin." + seed)
                 .fullName("Appointment Test Admin")
                 .email("itest.appt.admin." + seed + "@fitme.com")
-                .phoneNumber("+381601234567")
+                .phoneNumber("+3816" + seed + "2")
                 .password("itest.appt.fitme123!")
                 .build());
     return userService.updateUser(

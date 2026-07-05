@@ -72,7 +72,7 @@ Sve stavke potvrđene punim test suite-om: 79/79 testova prolazi, 0 failure/erro
 - [x] `phoneNumber` obavezan: `@NotBlank` u `BaseUserDTO` (važi za register I admin create — odluka korisnika 2026-07-05: DB-level NOT NULL + backfill, ne samo app-level) + `V10__require_phone_and_add_phone_verified.sql` (backfill `'000000'` za NULL, pa `SET NOT NULL`). `UpdateUserRequestDTO` netaknut (patch semantika, null = bez izmene; NOT NULL kolona + null-ignore mapper garantuju da telefon ne može biti obrisan).
 - [x] Novo polje `phoneVerified` (Boolean, default false, isti pattern kao `emailNotifications`) na `User` + ista V10 migracija.
 - [x] `ActivationTokenService` / email-link flow ostaje u kodu ali se **ne poziva** — poziv u `AuthService.register` zakomentarisan uz napomenu; `GET /api/auth/activate` endpoint i dalje funkcionalan.
-- [ ] `INACTIVE → ACTIVE` tranzicija pri uspešnoj SMS verifikaciji (poziva se iz `SmsVerificationService`, Modul 9) — admin fallback `PUT /api/users/{id}` ostaje kao i ranije.
+- [x] `INACTIVE → ACTIVE` tranzicija pri uspešnoj OTP verifikaciji (`PhoneVerificationService.verifyOtp`, Modul 9) — admin fallback `PUT /api/users/{id}` ostaje kao i ranije.
 - [x] Uzgredno (otkriveno tokom verifikacije): `mvn test` je pokretao samo `FitmeApplicationTests` — surefire 3.5.4 default includes ne hvataju `*IT` klase; dodata eksplicitna `maven-surefire-plugin` includes konfiguracija u `pom.xml`. Novi `AuthControllerIT` (register validacija telefona kroz MockMvc). Full suite 93/93 (2026-07-05).
 
 ### Dopuna Modula 5 — Membership 35 dana (§10 SPEC.md)
@@ -113,12 +113,15 @@ Sve stavke potvrđene punim test suite-om: 79/79 testova prolazi, 0 failure/erro
 
 ## Modul 9 — SMS/WhatsApp notifikacije (Infobip) (§8 SPEC.md)
 
-- [ ] Dodati Infobip Java SDK (ili koristiti `RestClient` direktno na Infobip REST API bez SDK-a — odlučiti tokom implementacije).
-- [ ] Konfiguracija: `infobip.api-key`, `infobip.base-url` iz `.env` / `application.properties`.
-- [ ] **SMS OTP verifikacija** (`SmsVerificationService`):
-  - `POST /api/auth/phone/send-otp` — generiše 6-cifreni OTP (SecureRandom), šalje SMS putem Infobip, pamti hash OTP-a + expiry (5 min) kao kolone na `users` tabeli; vraća 204.
-  - `POST /api/auth/phone/verify-otp { code }` — proverava kod, na success: `user.phoneVerified = true`, `user.status = ACTIVE` → `AuthService.activateByPhone(userId)`.
-  - Flyway migracija: dodati `otp_hash`, `otp_expires_at` kolone na `users`.
+Izmena obima (odluka korisnika 2026-07-05): verifikacija ide preko **WhatsApp-a** (ne SMS), korisnik se u OTP flow-u identifikuje po `phoneNumber` (ne email), pa je `phone_number` dobio partial unique index (`uk_users_phone_number_not_deleted`, bez DELETED naloga — isti duh kao email/username jedinstvenost). Podsetnici ostaju u planu.
+
+- [x] Bez Infobip SDK — `RestClient` direktno na Infobip REST API (`/whatsapp/1/message/template`). `WhatsAppSender` interfejs; `WhatsAppSenderConfig` bira implementaciju: `InfobipWhatsAppSender` kad je `INFOBIP_API_KEY` podešen, inače `NoopWhatsAppSender` (samo loguje) — dev/test rade bez naloga.
+- [x] Konfiguracija: `infobip.api-key`/`base-url`/`whatsapp-sender` iz `.env`, `infobip.templates.otp|reminder` imena template-a u `application.yaml`.
+- [x] **WhatsApp OTP verifikacija** (`PhoneVerificationService`):
+  - `POST /api/auth/phone/send-otp { phoneNumber }` — 6-cifreni OTP (SecureRandom), BCrypt hash + expiry 5 min na `users` (`otp_hash`, `otp_expires_at`); 60s resend-cooldown izveden iz expiry (`OTP_RESEND_COOLDOWN` 2902); tihi no-op za nepostojeći/već verifikovan broj (ne otkriva postojanje naloga); greška slanja ne poništava upisani OTP.
+  - `POST /api/auth/phone/verify-otp { phoneNumber, code }` — pogrešan/istekao kod → `OTP_INVALID` 2901; uspeh: `phoneVerified = true`, OTP kolone se briše, `INACTIVE → ACTIVE` + reset failedLoginAttempts.
+  - Migracija `V12__add_otp_and_phone_unique.sql`: de-dup `'000000'` backfill-a iz V10 (`'000000' || id`), partial unique index, `otp_hash`/`otp_expires_at`.
+  - `UserService.ensurePhoneNumberUnique` u create/update (`PHONE_NUMBER_ALREADY_EXISTS` 2105). Testovi: `PhoneVerificationServiceIT` (7), dopune `UserServiceIT`/`AuthControllerIT`; postojeći testovi prešli na jedinstvene brojeve po korisniku. Full suite 129/129 (2026-07-05).
 - [ ] **WhatsApp podsetnici** (`AppointmentReminderService`):
   - Entitet `AppointmentReminder` (`id`, `appointmentId`, `type` [DAY_BEFORE/HOUR_BEFORE], `scheduledAt`, `sentAt` nullable) + Flyway migracija.
   - Na `bookAppointment` → insert dva `AppointmentReminder` reda (24h i 1h pre `Termin.startTime`).

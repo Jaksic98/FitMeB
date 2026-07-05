@@ -9,6 +9,7 @@ import com.consi.fitme.dto.request.UpdateUserRequestDTO;
 import com.consi.fitme.dto.request.UserSearchRequestDTO;
 import com.consi.fitme.dto.response.MessageResponseDTO;
 import com.consi.fitme.dto.response.PagingResponseDTO;
+import com.consi.fitme.exception.user.PhoneNumberAlreadyExistsException;
 import com.consi.fitme.exception.user.UserNotFoundException;
 import com.consi.fitme.exception.user.UsernameAlreadyExistsException;
 import com.consi.fitme.exception.user.WeakPasswordException;
@@ -303,7 +304,7 @@ class UserServiceIT {
             .username(prefix + ".b")
             .fullName("Integration List B")
             .email(prefix + ".b@fitme.com")
-            .phoneNumber("+381601234567")
+            .phoneNumber("+3816" + seed + "1")
             .password("itest.list.fitme123!")
             .build());
 
@@ -312,7 +313,7 @@ class UserServiceIT {
             .username(prefix + ".a")
             .fullName("Integration List A")
             .email(prefix + ".a@fitme.com")
-            .phoneNumber("+381601234567")
+            .phoneNumber("+3816" + seed + "2")
             .password("itest.list.fitme123!")
             .build());
 
@@ -347,7 +348,7 @@ class UserServiceIT {
                 .username(prefix + ".admin")
                 .fullName("Integration Role Admin")
                 .email(prefix + ".admin@fitme.com")
-                .phoneNumber("+381601234567")
+                .phoneNumber("+3816" + seed + "1")
                 .password("itest.role.filter.fitme123!")
                 .build());
 
@@ -361,7 +362,7 @@ class UserServiceIT {
                 .username(prefix + ".other")
                 .fullName("Integration Role Other")
                 .email(prefix + ".other@fitme.com")
-                .phoneNumber("+381601234567")
+                .phoneNumber("+3816" + seed + "2")
                 .password("itest.role.filter.fitme123!")
                 .build());
 
@@ -458,7 +459,7 @@ class UserServiceIT {
                 .username(prefix + ".one")
                 .fullName("Exclude Deleted One")
                 .email(prefix + ".one@fitme.com")
-                .phoneNumber("+381601234567")
+                .phoneNumber("+3816" + seed + "1")
                 .password("itest.exclude.fitme123!")
                 .build());
 
@@ -468,7 +469,7 @@ class UserServiceIT {
                 .username(prefix + ".two")
                 .fullName("Exclude Deleted Two")
                 .email(prefix + ".two@fitme.com")
-                .phoneNumber("+381601234567")
+                .phoneNumber("+3816" + seed + "2")
                 .password("itest.exclude.fitme123!")
                 .build());
 
@@ -503,7 +504,7 @@ class UserServiceIT {
                 .username(sharedUsername)
                 .fullName("Active Username Owner")
                 .email("itest.active.owner." + seed + "@fitme.com")
-                .phoneNumber("+381601234567")
+                .phoneNumber("+3816" + seed + "1")
                 .password("itest.update.active.fitme123!")
                 .build());
 
@@ -522,7 +523,7 @@ class UserServiceIT {
                 .username(sharedUsername)
                 .fullName("Inactive Same Username")
                 .email("itest.inactive.same.username." + seed + "@fitme.com")
-                .phoneNumber("+381601234567")
+                .phoneNumber("+3816" + seed + "2")
                 .password("itest.update.active.fitme123!")
                 .build());
 
@@ -549,7 +550,7 @@ class UserServiceIT {
                 .username(sharedUsername)
                 .fullName("Active Username Owner")
                 .email("itest.inactive.allowed.active." + seed + "@fitme.com")
-                .phoneNumber("+381601234567")
+                .phoneNumber("+3816" + seed + "1")
                 .password("itest.update.inactive.fitme123!")
                 .build());
 
@@ -562,7 +563,7 @@ class UserServiceIT {
                 .username(sharedUsername)
                 .fullName("Inactive Same Username")
                 .email("itest.inactive.allowed.inactive." + seed + "@fitme.com")
-                .phoneNumber("+381601234567")
+                .phoneNumber("+3816" + seed + "2")
                 .password("itest.update.inactive.fitme123!")
                 .build());
 
@@ -577,5 +578,66 @@ class UserServiceIT {
     assertThat(updatedInactiveUser.getStatus()).isEqualTo(Status.INACTIVE);
     assertThat(updatedInactiveUser.getUsername()).isEqualTo(sharedUsername);
     assertThat(updatedInactiveUser.getFullName()).isEqualTo("Inactive Same Username Updated");
+  }
+
+  @Test
+  void givenExistingPhoneNumber_whenCreateUser_thenThrowsPhoneNumberAlreadyExistsException() {
+    String seed = String.valueOf(System.currentTimeMillis());
+    String sharedPhoneNumber = "+3816" + seed + "1";
+
+    service.createUser(
+        CreateUserRequestDTO.builder()
+            .username("itest.phone.first." + seed)
+            .fullName("Integration Phone First")
+            .email("itest.phone.first." + seed + "@fitme.com")
+            .phoneNumber(sharedPhoneNumber)
+            .password("itest.phone.fitme123!")
+            .build());
+
+    CreateUserRequestDTO duplicatePhoneRequest =
+        CreateUserRequestDTO.builder()
+            .username("itest.phone.second." + seed)
+            .fullName("Integration Phone Second")
+            .email("itest.phone.second." + seed + "@fitme.com")
+            .phoneNumber(sharedPhoneNumber)
+            .password("itest.phone.fitme123!")
+            .build();
+
+    assertThatThrownBy(() -> service.createUser(duplicatePhoneRequest))
+        .isInstanceOf(PhoneNumberAlreadyExistsException.class);
+  }
+
+  @Test
+  void
+      givenExistingPhoneNumber_whenUpdateAnotherUser_thenThrowsPhoneNumberAlreadyExistsException() {
+    String seed = String.valueOf(System.currentTimeMillis());
+    String firstPhoneNumber = "+3816" + seed + "1";
+    String secondPhoneNumber = "+3816" + seed + "2";
+
+    service.createUser(
+        CreateUserRequestDTO.builder()
+            .username("itest.phone.update.first." + seed)
+            .fullName("Integration Phone Update First")
+            .email("itest.phone.update.first." + seed + "@fitme.com")
+            .phoneNumber(firstPhoneNumber)
+            .password("itest.phone.update.fitme123!")
+            .build());
+
+    UserDTO secondUser =
+        service.createUser(
+            CreateUserRequestDTO.builder()
+                .username("itest.phone.update.second." + seed)
+                .fullName("Integration Phone Update Second")
+                .email("itest.phone.update.second." + seed + "@fitme.com")
+                .phoneNumber(secondPhoneNumber)
+                .password("itest.phone.update.fitme123!")
+                .build());
+
+    Long secondUserId = secondUser.getId();
+    UpdateUserRequestDTO duplicatePhoneUpdate =
+        UpdateUserRequestDTO.builder().phoneNumber(firstPhoneNumber).build();
+
+    assertThatThrownBy(() -> service.updateUser(secondUserId, duplicatePhoneUpdate))
+        .isInstanceOf(PhoneNumberAlreadyExistsException.class);
   }
 }

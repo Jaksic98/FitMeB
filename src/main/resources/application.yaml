@@ -33,3 +33,11 @@ security:
     secret-key: ${SECRET_KEY}
     cookie-expiry: 604800
     cookie-secure: true
+
+infobip:
+  api-key: ${INFOBIP_API_KEY:}
+  base-url: ${INFOBIP_BASE_URL:}
+  whatsapp-sender: ${INFOBIP_WHATSAPP_SENDER:}
+  templates:
+    otp: fitme_otp
+    reminder: fitme_reminder

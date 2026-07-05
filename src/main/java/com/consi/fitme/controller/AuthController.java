@@ -3,9 +3,12 @@ package com.consi.fitme.controller;
 import com.consi.fitme.dto.UserDTO;
 import com.consi.fitme.dto.request.LoginRequestDTO;
 import com.consi.fitme.dto.request.RegisterRequestDTO;
+import com.consi.fitme.dto.request.SendOtpRequestDTO;
+import com.consi.fitme.dto.request.VerifyOtpRequestDTO;
 import com.consi.fitme.dto.response.MessageResponseDTO;
 import com.consi.fitme.dto.response.SuccessResponseDTO;
 import com.consi.fitme.service.AuthService;
+import com.consi.fitme.service.PhoneVerificationService;
 import com.consi.fitme.util.ResponseUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -25,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
   private final AuthService service;
+  private final PhoneVerificationService phoneVerificationService;
 
   @PostMapping("/login")
   public ResponseEntity<SuccessResponseDTO<MessageResponseDTO>> login(
@@ -88,6 +92,31 @@ public class AuthController {
         ResponseUtil.success(
             new MessageResponseDTO("Sesija je aktivna"),
             "Sesija je aktivna",
+            request.getRequestURI()));
+  }
+
+  @PostMapping("/phone/send-otp")
+  public ResponseEntity<SuccessResponseDTO<MessageResponseDTO>> sendOtp(
+      @Valid @RequestBody SendOtpRequestDTO sendOtpRequestDTO, HttpServletRequest request) {
+
+    phoneVerificationService.sendOtp(sendOtpRequestDTO.getPhoneNumber());
+    return ResponseEntity.ok(
+        ResponseUtil.success(
+            new MessageResponseDTO("Kod za verifikaciju je poslat"),
+            "Kod za verifikaciju je poslat",
+            request.getRequestURI()));
+  }
+
+  @PostMapping("/phone/verify-otp")
+  public ResponseEntity<SuccessResponseDTO<MessageResponseDTO>> verifyOtp(
+      @Valid @RequestBody VerifyOtpRequestDTO verifyOtpRequestDTO, HttpServletRequest request) {
+
+    phoneVerificationService.verifyOtp(
+        verifyOtpRequestDTO.getPhoneNumber(), verifyOtpRequestDTO.getCode());
+    return ResponseEntity.ok(
+        ResponseUtil.success(
+            new MessageResponseDTO("Broj telefona je uspešno verifikovan"),
+            "Broj telefona je uspešno verifikovan",
             request.getRequestURI()));
   }
 }

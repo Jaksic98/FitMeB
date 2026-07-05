@@ -19,6 +19,8 @@ public interface UserRepository extends JpaRepository<User, Long>, UserQueryRepo
 
   Optional<User> findByUsernameIgnoreCaseAndStatus(String username, Status status);
 
+  Optional<User> findByPhoneNumberAndStatusNot(String phoneNumber, Status status);
+
   @Query(
       value =
           """

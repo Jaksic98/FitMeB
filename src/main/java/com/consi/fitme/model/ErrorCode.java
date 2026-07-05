@@ -25,6 +25,7 @@ public enum ErrorCode {
   WEAK_PASSWORD(2103, "Lozinka ne ispunjava bezbednosne uslove", HttpStatus.BAD_REQUEST),
   INVALID_ACTIVATION_TOKEN(
       2104, "Token za aktivaciju nije ispravan ili je istekao", HttpStatus.BAD_REQUEST),
+  PHONE_NUMBER_ALREADY_EXISTS(2105, "Broj telefona već postoji", HttpStatus.CONFLICT),
   TIP_PRAVNOG_LICA_NOT_FOUND(2201, "Tip pravnog lica nije pronađen", HttpStatus.NOT_FOUND),
   TIP_PRAVNOG_LICA_ALREADY_EXISTS(2202, "Tip pravnog lica već postoji", HttpStatus.CONFLICT),
   TIP_PRAVNOG_LICA_DELETE_BLOCKED(
@@ -71,6 +72,10 @@ public enum ErrorCode {
       HttpStatus.CONFLICT),
   TERMIN_TEMPLATE_INVALID_TIME_RANGE(
       2803, "Vreme završetka šablona mora biti posle vremena početka", HttpStatus.BAD_REQUEST),
+
+  // 29xx – phone verification domain
+  OTP_INVALID(2901, "Kod za verifikaciju nije ispravan ili je istekao", HttpStatus.BAD_REQUEST),
+  OTP_RESEND_COOLDOWN(2902, "Sačekajte pre ponovnog slanja koda", HttpStatus.TOO_MANY_REQUESTS),
 
   // 3xxx – generic resources
   RESOURCE_NOT_FOUND(3001, "Resurs nije pronađen", HttpStatus.NOT_FOUND);

@@ -111,11 +111,75 @@ class AuthControllerIT {
                       "username": "itest.register.valid.%s",
                       "fullName": "Integration Register Valid",
                       "email": "itest.register.valid.%s@fitme.com",
-                      "phoneNumber": "+381601234567",
+                      "phoneNumber": "+3816%s1",
                       "password": "itest.register.fitme123!"
                     }
                     """
-                        .formatted(seed, seed)))
+                        .formatted(seed, seed, seed)))
         .andExpect(status().isOk());
+  }
+
+  @Test
+  void givenMissingPhoneNumber_whenSendOtp_thenValidationFails() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/auth/phone/send-otp").contentType(MediaType.APPLICATION_JSON).content("{}"))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void givenValidPhoneNumber_whenSendOtp_thenReturnsOk() throws Exception {
+    String seed = String.valueOf(System.currentTimeMillis());
+
+    mockMvc
+        .perform(
+            post("/api/auth/phone/send-otp")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "phoneNumber": "+3816%s9"
+                    }
+                    """
+                        .formatted(seed)))
+        .andExpect(status().isOk());
+  }
+
+  @Test
+  void givenNonSixDigitCode_whenVerifyOtp_thenValidationFails() throws Exception {
+    String seed = String.valueOf(System.currentTimeMillis());
+
+    mockMvc
+        .perform(
+            post("/api/auth/phone/verify-otp")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "phoneNumber": "+3816%s9",
+                      "code": "12345"
+                    }
+                    """
+                        .formatted(seed)))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void givenAlphabeticCode_whenVerifyOtp_thenValidationFails() throws Exception {
+    String seed = String.valueOf(System.currentTimeMillis());
+
+    mockMvc
+        .perform(
+            post("/api/auth/phone/verify-otp")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "phoneNumber": "+3816%s9",
+                      "code": "abcdef"
+                    }
+                    """
+                        .formatted(seed)))
+        .andExpect(status().isBadRequest());
   }
 }

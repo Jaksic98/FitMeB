@@ -6,6 +6,7 @@ import com.consi.fitme.dto.request.UpdateUserRequestDTO;
 import com.consi.fitme.dto.request.UserSearchRequestDTO;
 import com.consi.fitme.dto.response.MessageResponseDTO;
 import com.consi.fitme.dto.response.PagingResponseDTO;
+import com.consi.fitme.exception.user.PhoneNumberAlreadyExistsException;
 import com.consi.fitme.exception.user.UserNotFoundException;
 import com.consi.fitme.exception.user.UsernameAlreadyExistsException;
 import com.consi.fitme.exception.user.WeakPasswordException;
@@ -70,6 +71,7 @@ public class UserService {
       throw new WeakPasswordException();
     }
     ensureEmailUnique(createUserRequestDTO.getEmail(), null);
+    ensurePhoneNumberUnique(createUserRequestDTO.getPhoneNumber(), null);
 
     User user =
         User.builder()
@@ -115,12 +117,17 @@ public class UserService {
         updateUserRequestDTO.getEmail() != null
             ? updateUserRequestDTO.getEmail()
             : existingUser.getEmail();
+    String nextPhoneNumber =
+        updateUserRequestDTO.getPhoneNumber() != null
+            ? updateUserRequestDTO.getPhoneNumber()
+            : existingUser.getPhoneNumber();
     Status nextStatus =
         updateUserRequestDTO.getStatus() != null
             ? updateUserRequestDTO.getStatus()
             : existingUser.getStatus();
     ensureUsernameUniqueForActiveStatus(nextUsername, id, nextStatus);
     ensureEmailUnique(nextEmail, id);
+    ensurePhoneNumberUnique(nextPhoneNumber, id);
 
     userPatchMapper.applyPatch(updateUserRequestDTO, existingUser);
 
@@ -169,6 +176,14 @@ public class UserService {
     if (existing.isPresent()
         && (currentUserId == null || !existing.get().getId().equals(currentUserId))) {
       throw new UsernameAlreadyExistsException(email);
+    }
+  }
+
+  private void ensurePhoneNumberUnique(String phoneNumber, Long currentUserId) {
+    Optional<User> existing = repository.findByPhoneNumberAndStatusNot(phoneNumber, Status.DELETED);
+    if (existing.isPresent()
+        && (currentUserId == null || !existing.get().getId().equals(currentUserId))) {
+      throw new PhoneNumberAlreadyExistsException(phoneNumber);
     }
   }
 

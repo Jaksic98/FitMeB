@@ -4,6 +4,7 @@ import com.consi.fitme.model.Status;
 import jakarta.persistence.*;
 import java.io.Serial;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -72,6 +73,12 @@ public class User implements UserDetails {
 
   @Column(name = "membership_expires_at")
   private LocalDate membershipExpiresAt;
+
+  @Column(name = "otp_hash")
+  private String otpHash;
+
+  @Column(name = "otp_expires_at")
+  private LocalDateTime otpExpiresAt;
 
   @Transient private List<SimpleGrantedAuthority> grantedAuthorities;
 
