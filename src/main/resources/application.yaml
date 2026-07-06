@@ -38,6 +38,15 @@ infobip:
   api-key: ${INFOBIP_API_KEY:}
   base-url: ${INFOBIP_BASE_URL:}
   whatsapp-sender: ${INFOBIP_WHATSAPP_SENDER:}
+
+meta:
+  whatsapp:
+    access-token: ${META_WHATSAPP_ACCESS_TOKEN:}
+    phone-number-id: ${META_WHATSAPP_PHONE_NUMBER_ID:}
+    graph-api-version: ${META_GRAPH_API_VERSION:v21.0}
+
+whatsapp:
+  provider: ${WHATSAPP_PROVIDER:noop}
   templates:
     otp: fitme_otp
     reminder: fitme_reminder

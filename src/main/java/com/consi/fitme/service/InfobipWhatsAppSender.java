@@ -16,7 +16,12 @@ public class InfobipWhatsAppSender implements WhatsAppSender {
   private final String sender;
 
   public InfobipWhatsAppSender(String apiKey, String baseUrl, String sender) {
-    this.restClient = RestClient.create();
+    this(apiKey, baseUrl, sender, RestClient.builder());
+  }
+
+  public InfobipWhatsAppSender(
+      String apiKey, String baseUrl, String sender, RestClient.Builder restClientBuilder) {
+    this.restClient = restClientBuilder.build();
     this.apiKey = apiKey;
     this.baseUrl = baseUrl;
     this.sender = sender;

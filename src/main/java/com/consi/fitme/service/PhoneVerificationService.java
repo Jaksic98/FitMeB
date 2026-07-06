@@ -32,7 +32,7 @@ public class PhoneVerificationService {
   private final PasswordEncoder passwordEncoder;
   private final WhatsAppSender whatsAppSender;
 
-  @Value("${infobip.templates.otp:fitme_otp}")
+  @Value("${whatsapp.templates.otp:fitme_otp}")
   private String otpTemplateName;
 
   @Transactional

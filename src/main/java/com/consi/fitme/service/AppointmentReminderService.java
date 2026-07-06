@@ -34,7 +34,7 @@ public class AppointmentReminderService {
   private final UserRepository userRepository;
   private final WhatsAppSender whatsAppSender;
 
-  @Value("${infobip.templates.reminder:fitme_reminder}")
+  @Value("${whatsapp.templates.reminder:fitme_reminder}")
   private String reminderTemplateName;
 
   @Transactional
