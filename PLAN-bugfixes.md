@@ -24,12 +24,9 @@ Svaka stavka ima status `[ ]`/`[x]`, kratak opis trenutnog stanja (sa file:line 
 
 ## 5. Pravilo: max 1 termin dnevno po klijentu
 
-- [ ] `AppointmentService.bookAppointment` (`service/AppointmentService.java:120-173`) proverava dostupnost slota, membership expiry i `remainingAppointments > 0` (samo za ne-admin) — **nema provere da li klijent već ima BOOKED appointment istog datuma**.
-- **Plan:**
-  - Dodati repository upit koji spaja `Appointment`→`Termin` (JPQL/native `@Query`) filtriran po `userId`, `status = BOOKED`, `termin.date = :date`; ili u servisu: `repository.findAllByUserId(targetUserId)` filtrirano na `BOOKED`, pa `terminRepository.findAllById(...)` i provera `date` — dedikovan upit je čistiji za veći obim podataka.
-  - Novi domain exception (npr. `DuplicateAppointmentOnSameDayException`) po obrascu `NoRemainingAppointmentsException`/`MembershipExpiredException` (`exception/appointment/`), nov `ErrorCode` u 27xx opsegu, registrovati u `GlobalExceptionHandler`.
-  - **Odluka za korisnika:** da li pravilo važi i kad ADMIN book-uje u ime klijenta (trenutno admin preskače membership/remaining-appointments provere, linije 143-152/165-167)? Preporuka: DA — ovo je pravilo o klijentovom kalendaru, ne o dozvolama, pa ne treba da bude unutar `if (!isAdmin)` bloka. Potvrditi pre implementacije.
-  - Testovi u `AppointmentServiceIT`: drugi booking istog dana baca grešku (CLIENT i ADMIN-u-ime-klijenta ako se odluči da važi za oba), booking različitog dana prolazi.
+- [x] **Rešeno.** Novi `hasBookedAppointmentOnDate(userId, date)` helper u `AppointmentService` (`repository.findAllByUserId` filtrirano na `BOOKED` → `terminRepository.findAllById` → provera `date`), pozvan unutar postojećeg `if (!isAdmin)` bloka u `bookAppointment` (odmah posle `remainingAppointments` provere). Nov `DuplicateAppointmentOnSameDayException` + `ErrorCode.DUPLICATE_APPOINTMENT_SAME_DAY` (2709, HTTP 409).
+- **Odluka korisnika (2026-07-10):** pravilo važi **samo za CLIENT self-booking** — admin booking u ime klijenta ga preskače (isti obrazac kao membership/remaining-appointments provere).
+- Testovi u `AppointmentServiceIT`: drugi CLIENT booking istog dana baca `DuplicateAppointmentOnSameDayException`; drugi CLIENT booking različitog dana prolazi; admin booking dva termina istog dana za istog klijenta prolazi (pravilo se ne primenjuje). Full suite 155/155.
 
 ## 6. Admin otkazivanje treba da vrati +1 kredit klijentu
 

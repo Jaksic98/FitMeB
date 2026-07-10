@@ -11,6 +11,7 @@ import com.consi.fitme.exception.appointment.AppointmentNotBookedException;
 import com.consi.fitme.exception.appointment.AppointmentNotFoundException;
 import com.consi.fitme.exception.appointment.AppointmentOwnershipException;
 import com.consi.fitme.exception.appointment.AppointmentUserRequiredException;
+import com.consi.fitme.exception.appointment.DuplicateAppointmentOnSameDayException;
 import com.consi.fitme.exception.appointment.MembershipExpiredException;
 import com.consi.fitme.exception.appointment.NoRemainingAppointmentsException;
 import com.consi.fitme.exception.user.UserNotFoundException;
@@ -124,6 +125,7 @@ public class AppointmentService {
 
     Appointment appointment = findOrThrow(bookAppointmentRequestDTO.getAppointmentId());
     ensureSlotBookable(appointment);
+    Termin termin = terminRepository.findById(appointment.getTerminId()).orElseThrow();
 
     Long targetUserId;
     if (isAdmin) {
@@ -149,15 +151,17 @@ public class AppointmentService {
       if (remaining == null || remaining <= 0) {
         throw new NoRemainingAppointmentsException();
       }
+      if (hasBookedAppointmentOnDate(targetUserId, termin.getDate())) {
+        throw new DuplicateAppointmentOnSameDayException();
+      }
     }
 
     appointment.setStatus(AppointmentStatus.BOOKED);
     appointment.setUserId(targetUserId);
     Appointment saved = claimSlot(appointment);
 
-    Termin bookedTermin = terminRepository.findById(saved.getTerminId()).orElseThrow();
     appointmentReminderService.scheduleReminders(
-        saved.getId(), LocalDateTime.of(bookedTermin.getDate(), bookedTermin.getStartTime()));
+        saved.getId(), LocalDateTime.of(termin.getDate(), termin.getStartTime()));
 
     if (targetUser.getMembershipExpiresAt() == null) {
       targetUser.setMembershipExpiresAt(LocalDate.now().plusDays(MEMBERSHIP_DURATION_DAYS));
@@ -240,6 +244,20 @@ public class AppointmentService {
     AppointmentDTO targetNewState = toDto(savedTarget);
     auditLogService.logUpdate(ENTITY_TYPE, savedTarget.getId(), targetOldState, targetNewState);
     return targetNewState;
+  }
+
+  private boolean hasBookedAppointmentOnDate(Long userId, LocalDate date) {
+    List<Long> bookedTerminIds =
+        repository.findAllByUserId(userId).stream()
+            .filter(a -> a.getStatus() == AppointmentStatus.BOOKED)
+            .map(Appointment::getTerminId)
+            .distinct()
+            .toList();
+    if (bookedTerminIds.isEmpty()) {
+      return false;
+    }
+    return terminRepository.findAllById(bookedTerminIds).stream()
+        .anyMatch(t -> t.getDate().equals(date));
   }
 
   private void ensureSlotBookable(Appointment appointment) {

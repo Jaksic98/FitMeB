@@ -63,6 +63,8 @@ public enum ErrorCode {
   APPOINTMENT_NOT_BOOKED(
       2707, "Appointment nije rezervisan, otkazivanje/izmena nije moguća", HttpStatus.CONFLICT),
   MEMBERSHIP_EXPIRED(2708, "Članarina je istekla", HttpStatus.BAD_REQUEST),
+  DUPLICATE_APPOINTMENT_SAME_DAY(
+      2709, "Već imate rezervisan termin za izabrani datum", HttpStatus.CONFLICT),
 
   // 28xx – termin template domain
   TERMIN_TEMPLATE_NOT_FOUND(2801, "Šablon termina nije pronađen", HttpStatus.NOT_FOUND),

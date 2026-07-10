@@ -19,6 +19,7 @@ import com.consi.fitme.exception.appointment.AppointmentNotAvailableException;
 import com.consi.fitme.exception.appointment.AppointmentNotBookedException;
 import com.consi.fitme.exception.appointment.AppointmentOwnershipException;
 import com.consi.fitme.exception.appointment.AppointmentUserRequiredException;
+import com.consi.fitme.exception.appointment.DuplicateAppointmentOnSameDayException;
 import com.consi.fitme.exception.appointment.MembershipExpiredException;
 import com.consi.fitme.exception.appointment.NoRemainingAppointmentsException;
 import com.consi.fitme.model.AppointmentStatus;
@@ -147,6 +148,65 @@ class AppointmentServiceIT {
 
     assertThatThrownBy(() -> service.bookAppointment(bookRequest))
         .isInstanceOf(MembershipExpiredException.class);
+  }
+
+  @Test
+  void
+      givenClientWithExistingBookingSameDay_whenBookAppointment_thenThrowsDuplicateAppointmentOnSameDayException() {
+    UserDTO client = createActiveClient(seed(), 3);
+    LocalDate date = farFutureDate();
+    Long firstAppointmentId = createAppointment(date, LocalTime.of(9, 0), LocalTime.of(10, 0));
+    Long secondAppointmentId = createAppointment(date, LocalTime.of(11, 0), LocalTime.of(12, 0));
+    authenticateAs(client.getId(), "CLIENT");
+    service.bookAppointment(
+        BookAppointmentRequestDTO.builder().appointmentId(firstAppointmentId).build());
+    BookAppointmentRequestDTO secondBookRequest =
+        BookAppointmentRequestDTO.builder().appointmentId(secondAppointmentId).build();
+
+    assertThatThrownBy(() -> service.bookAppointment(secondBookRequest))
+        .isInstanceOf(DuplicateAppointmentOnSameDayException.class);
+  }
+
+  @Test
+  void givenClientWithExistingBookingOtherDay_whenBookAppointment_thenSucceeds() {
+    UserDTO client = createActiveClient(seed(), 3);
+    Long firstAppointmentId =
+        createAppointment(farFutureDate(), LocalTime.of(9, 0), LocalTime.of(10, 0));
+    Long secondAppointmentId =
+        createAppointment(farFutureDate().plusDays(1), LocalTime.of(9, 0), LocalTime.of(10, 0));
+    authenticateAs(client.getId(), "CLIENT");
+    service.bookAppointment(
+        BookAppointmentRequestDTO.builder().appointmentId(firstAppointmentId).build());
+
+    AppointmentDTO secondBooking =
+        service.bookAppointment(
+            BookAppointmentRequestDTO.builder().appointmentId(secondAppointmentId).build());
+
+    assertThat(secondBooking.getStatus()).isEqualTo(AppointmentStatus.BOOKED);
+  }
+
+  @Test
+  void givenAdminBookingTwiceSameDayForClient_whenBookAppointment_thenSucceeds() {
+    UserDTO admin = createActiveAdmin(seed());
+    UserDTO client = createActiveClient(seed(), 3);
+    LocalDate date = farFutureDate();
+    Long firstAppointmentId = createAppointment(date, LocalTime.of(9, 0), LocalTime.of(10, 0));
+    Long secondAppointmentId = createAppointment(date, LocalTime.of(11, 0), LocalTime.of(12, 0));
+    authenticateAs(admin.getId(), "ADMIN");
+    service.bookAppointment(
+        BookAppointmentRequestDTO.builder()
+            .appointmentId(firstAppointmentId)
+            .userId(client.getId())
+            .build());
+
+    AppointmentDTO secondBooking =
+        service.bookAppointment(
+            BookAppointmentRequestDTO.builder()
+                .appointmentId(secondAppointmentId)
+                .userId(client.getId())
+                .build());
+
+    assertThat(secondBooking.getStatus()).isEqualTo(AppointmentStatus.BOOKED);
   }
 
   @Test
