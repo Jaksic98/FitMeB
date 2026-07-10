@@ -310,6 +310,70 @@ class TerminServiceIT {
   }
 
   @Test
+  void givenStartTimeFilter_whenGetAllTermini_thenReturnsOnlyMatchingStartTimeTermini() {
+    long offset = uniqueDayOffset();
+    LocalDate date = LocalDate.now().plusDays(offset);
+    LocalDate otherDate = LocalDate.now().plusDays(offset + 1);
+
+    TerminDTO matchingTermin =
+        service.createTermin(
+            CreateTerminRequestDTO.builder()
+                .date(date)
+                .startTime(LocalTime.of(9, 0))
+                .endTime(LocalTime.of(10, 0))
+                .build());
+    TerminDTO otherTermin =
+        service.createTermin(
+            CreateTerminRequestDTO.builder()
+                .date(otherDate)
+                .startTime(LocalTime.of(11, 0))
+                .endTime(LocalTime.of(12, 0))
+                .build());
+
+    PagingResponseDTO<TerminDTO> filtered =
+        service.getAllTermini(
+            TerminSearchRequestDTO.builder().size(100).startTime(LocalTime.of(9, 0)).build());
+
+    assertThat(filtered.getData()).extracting(TerminDTO::getId).contains(matchingTermin.getId());
+    assertThat(filtered.getData()).extracting(TerminDTO::getId).doesNotContain(otherTermin.getId());
+  }
+
+  @Test
+  void
+      givenDateAndStartTimeFilter_whenGetAllTermini_thenReturnsOnlyMatchingBothDateAndStartTime() {
+    long offset = uniqueDayOffset();
+    LocalDate date = LocalDate.now().plusDays(offset);
+
+    TerminDTO matchingTermin =
+        service.createTermin(
+            CreateTerminRequestDTO.builder()
+                .date(date)
+                .startTime(LocalTime.of(9, 0))
+                .endTime(LocalTime.of(10, 0))
+                .build());
+    TerminDTO sameDateOtherTime =
+        service.createTermin(
+            CreateTerminRequestDTO.builder()
+                .date(date)
+                .startTime(LocalTime.of(11, 0))
+                .endTime(LocalTime.of(12, 0))
+                .build());
+
+    PagingResponseDTO<TerminDTO> filtered =
+        service.getAllTermini(
+            TerminSearchRequestDTO.builder()
+                .size(100)
+                .date(date)
+                .startTime(LocalTime.of(9, 0))
+                .build());
+
+    assertThat(filtered.getData()).extracting(TerminDTO::getId).contains(matchingTermin.getId());
+    assertThat(filtered.getData())
+        .extracting(TerminDTO::getId)
+        .doesNotContain(sameDateOtherTime.getId());
+  }
+
+  @Test
   void givenTerminWithBookedAppointment_whenDeleteTermin_thenThrowsTerminDeleteBlockedException() {
     String seed = String.valueOf(System.currentTimeMillis());
     pilatesService.createPilates(

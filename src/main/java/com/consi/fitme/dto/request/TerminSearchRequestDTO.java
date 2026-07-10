@@ -1,6 +1,7 @@
 package com.consi.fitme.dto.request;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,4 +18,7 @@ public class TerminSearchRequestDTO extends PagingRequestDTO {
 
   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
   private LocalDate date;
+
+  @DateTimeFormat(iso = DateTimeFormat.ISO.TIME)
+  private LocalTime startTime;
 }

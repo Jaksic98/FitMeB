@@ -42,11 +42,19 @@ public class TerminService {
 
   public PagingResponseDTO<TerminDTO> getAllTermini(TerminSearchRequestDTO searchRequest) {
     Pageable pageable = buildPageable(searchRequest);
-    Page<Termin> page =
-        searchRequest.getDate() != null
-            ? repository.findAllByStatusNotAndDate(
-                Status.DELETED, searchRequest.getDate(), pageable)
-            : repository.findAllByStatusNot(Status.DELETED, pageable);
+    LocalDate date = searchRequest.getDate();
+    LocalTime startTime = searchRequest.getStartTime();
+    Page<Termin> page;
+    if (date != null && startTime != null) {
+      page = repository.findAllByStatusNotAndDateAndStartTime(
+          Status.DELETED, date, startTime, pageable);
+    } else if (date != null) {
+      page = repository.findAllByStatusNotAndDate(Status.DELETED, date, pageable);
+    } else if (startTime != null) {
+      page = repository.findAllByStatusNotAndStartTime(Status.DELETED, startTime, pageable);
+    } else {
+      page = repository.findAllByStatusNot(Status.DELETED, pageable);
+    }
     List<TerminDTO> data = page.getContent().stream().map(this::toDto).toList();
 
     return new PagingResponseDTO<>(
@@ -71,6 +79,7 @@ public class TerminService {
             .sortField(sortField)
             .direction(searchRequest.getDirection())
             .date(searchRequest.getDate())
+            .startTime(searchRequest.getStartTime())
             .build();
     return PaginationUtils.getPageable(sanitized);
   }

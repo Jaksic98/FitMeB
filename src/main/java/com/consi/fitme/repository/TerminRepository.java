@@ -3,6 +3,7 @@ package com.consi.fitme.repository;
 import com.consi.fitme.model.Status;
 import com.consi.fitme.model.entity.Termin;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -18,6 +19,11 @@ public interface TerminRepository extends JpaRepository<Termin, Long> {
   Page<Termin> findAllByStatusNot(Status status, Pageable pageable);
 
   Page<Termin> findAllByStatusNotAndDate(Status status, LocalDate date, Pageable pageable);
+
+  Page<Termin> findAllByStatusNotAndStartTime(Status status, LocalTime startTime, Pageable pageable);
+
+  Page<Termin> findAllByStatusNotAndDateAndStartTime(
+      Status status, LocalDate date, LocalTime startTime, Pageable pageable);
 
   List<Termin> findAllByStatus(Status status);
 
