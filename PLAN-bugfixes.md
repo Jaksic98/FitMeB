@@ -30,14 +30,7 @@ Svaka stavka ima status `[ ]`/`[x]`, kratak opis trenutnog stanja (sa file:line 
 
 ## 6. Admin otkazivanje treba da vrati +1 kredit klijentu
 
-- [ ] Cancel grana u `AppointmentService.updateAppointment` (`targetAppointmentId == null`, `service/AppointmentService.java:195-204`) samo setuje `status = AVAILABLE`, `userId = null` — nigde ne menja `User.remainingAppointments`, bez obzira ko otkazuje (potvrđuje trenutnu dokumentovanu politiku "cancel never refunds the credit").
-- **Plan:**
-  - U cancel grani, **pre** brisanja `appointment.setUserId(null)` (linija ~196), zapamtiti `Long ownerUserId = appointment.getUserId()`.
-  - Refund samo kad: `isAdmin == true` **i** `!currentUser.getId().equals(ownerUserId)` (admin otkazuje tuđu rezervaciju, ne svoju) — ovo prirodno isključuje slučaj kad admin otkazuje sopstveni booking.
-  - Kad CLIENT sam otkazuje (`!isAdmin`, ownership već enforced iznad) — **bez** refund-a, ostaje kao danas.
-  - Učitati `User` preko `userRepository.findById(ownerUserId)`, `setRemainingAppointments(+1)`, `save(...)` — isti obrazac kao decrement u `bookAppointment` (linije 162-168).
-  - `reschedule()` (linije 218-243) **ne dirati** — treba da ostane bez promene kredita (izvorni slot se oslobađa, ciljni zauzima od istog korisnika).
-  - Testovi u `AppointmentServiceIT`: admin cancel tuđe rezervacije → `remainingAppointments +1`; client self-cancel → bez promene; admin cancel sopstvene rezervacije (ako je admin ikad i sam klijent) → bez promene; reschedule → bez promene.
+- [x] **Rešeno.** Cancel grana u `updateAppointment` sad pamti `ownerUserId` pre brisanja, i poziva novi `refundAppointmentCredit(ownerUserId)` kad `isAdmin && !currentUser.getId().equals(ownerUserId)` — admin otkazuje tuđu rezervaciju. Client self-cancel i admin-cancel-sopstvene-rezervacije ostaju bez refund-a. `reschedule()` nije dirano. Testovi u `AppointmentServiceIT`: `givenClientBooking_whenAdminCancels_thenRefundsClientCredit`, `givenAdminOwnBooking_whenAdminCancels_thenDoesNotRefundCredit` (+ postojeći `givenBookedAppointmentFarInFuture_whenClientCancels_thenReleasesSlotWithoutRefundingCredit` i dalje zeleno). Full suite 157/157.
 
 ## 7. "Zaključano" (12h pre termina) — backend nije kriv, ali razmotriti computed polje
 

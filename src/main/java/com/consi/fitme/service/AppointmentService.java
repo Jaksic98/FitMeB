@@ -197,10 +197,15 @@ public class AppointmentService {
     AppointmentDTO oldState = toDto(appointment);
 
     if (updateAppointmentRequestDTO.getTargetAppointmentId() == null) {
+      Long ownerUserId = appointment.getUserId();
       appointment.setStatus(AppointmentStatus.AVAILABLE);
       appointment.setUserId(null);
       Appointment saved = repository.save(appointment);
       appointmentReminderService.cancelReminders(saved.getId());
+
+      if (isAdmin && !currentUser.getId().equals(ownerUserId)) {
+        refundAppointmentCredit(ownerUserId);
+      }
 
       AppointmentDTO newState = toDto(saved);
       auditLogService.logUpdate(ENTITY_TYPE, saved.getId(), oldState, newState);
@@ -244,6 +249,14 @@ public class AppointmentService {
     AppointmentDTO targetNewState = toDto(savedTarget);
     auditLogService.logUpdate(ENTITY_TYPE, savedTarget.getId(), targetOldState, targetNewState);
     return targetNewState;
+  }
+
+  private void refundAppointmentCredit(Long userId) {
+    User owner =
+        userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
+    Integer remaining = owner.getRemainingAppointments();
+    owner.setRemainingAppointments((remaining != null ? remaining : 0) + 1);
+    userRepository.save(owner);
   }
 
   private boolean hasBookedAppointmentOnDate(Long userId, LocalDate date) {

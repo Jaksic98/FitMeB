@@ -535,6 +535,47 @@ class AppointmentServiceIT {
   }
 
   @Test
+  void givenClientBooking_whenAdminCancels_thenRefundsClientCredit() {
+    UserDTO client = createActiveClient(seed(), 3);
+    UserDTO admin = createActiveAdmin(seed());
+    Long appointmentId =
+        createAppointment(farFutureDate(), LocalTime.of(9, 0), LocalTime.of(10, 0));
+
+    authenticateAs(client.getId(), "CLIENT");
+    service.bookAppointment(
+        BookAppointmentRequestDTO.builder().appointmentId(appointmentId).build());
+    User afterBooking = userRepository.findById(client.getId()).orElseThrow();
+    assertThat(afterBooking.getRemainingAppointments()).isEqualTo(2);
+
+    authenticateAs(admin.getId(), "ADMIN");
+    service.updateAppointment(appointmentId, UpdateAppointmentRequestDTO.builder().build());
+
+    User afterAdminCancel = userRepository.findById(client.getId()).orElseThrow();
+    assertThat(afterAdminCancel.getRemainingAppointments()).isEqualTo(3);
+  }
+
+  @Test
+  void givenAdminOwnBooking_whenAdminCancels_thenDoesNotRefundCredit() {
+    UserDTO admin = createActiveAdmin(seed());
+    Long appointmentId =
+        createAppointment(farFutureDate(), LocalTime.of(9, 0), LocalTime.of(10, 0));
+
+    authenticateAs(admin.getId(), "ADMIN");
+    service.bookAppointment(
+        BookAppointmentRequestDTO.builder()
+            .appointmentId(appointmentId)
+            .userId(admin.getId())
+            .build());
+    User afterBooking = userRepository.findById(admin.getId()).orElseThrow();
+    Integer remainingAfterBooking = afterBooking.getRemainingAppointments();
+
+    service.updateAppointment(appointmentId, UpdateAppointmentRequestDTO.builder().build());
+
+    User afterCancel = userRepository.findById(admin.getId()).orElseThrow();
+    assertThat(afterCancel.getRemainingAppointments()).isEqualTo(remainingAfterBooking);
+  }
+
+  @Test
   void givenClientOwnAppointments_whenGetByUserId_thenReturnsOwnAppointments() {
     UserDTO client = createActiveClient(seed(), 3);
     Long appointmentId =
