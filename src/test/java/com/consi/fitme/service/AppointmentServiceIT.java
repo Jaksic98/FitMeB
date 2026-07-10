@@ -306,6 +306,33 @@ class AppointmentServiceIT {
   }
 
   @Test
+  void givenAppointmentWithinCancelWindow_whenBooked_thenLockedIsTrue() {
+    UserDTO client = createActiveClient(seed(), 3);
+    Long appointmentId = createAppointmentForCancelWindowTest(LocalDateTime.now().plusMinutes(5));
+    authenticateAs(client.getId(), "CLIENT");
+
+    AppointmentDTO booked =
+        service.bookAppointment(
+            BookAppointmentRequestDTO.builder().appointmentId(appointmentId).build());
+
+    assertThat(booked.isLocked()).isTrue();
+  }
+
+  @Test
+  void givenAppointmentFarInFuture_whenBooked_thenLockedIsFalse() {
+    UserDTO client = createActiveClient(seed(), 3);
+    Long appointmentId =
+        createAppointment(farFutureDate(), LocalTime.of(9, 0), LocalTime.of(10, 0));
+    authenticateAs(client.getId(), "CLIENT");
+
+    AppointmentDTO booked =
+        service.bookAppointment(
+            BookAppointmentRequestDTO.builder().appointmentId(appointmentId).build());
+
+    assertThat(booked.isLocked()).isFalse();
+  }
+
+  @Test
   void
       givenBookedAppointmentLessThan12hAway_whenClientCancels_thenThrowsAppointmentCancelWindowExpiredException() {
     UserDTO client = createActiveClient(seed(), 3);

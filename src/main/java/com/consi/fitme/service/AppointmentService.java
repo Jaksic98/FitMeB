@@ -329,9 +329,7 @@ public class AppointmentService {
             .findById(appointment.getTerminId())
             .orElseThrow(() -> new AppointmentNotFoundException(appointmentId));
 
-    LocalDateTime cutoff =
-        LocalDateTime.of(termin.getDate(), termin.getStartTime()).minusHours(CANCEL_WINDOW_HOURS);
-    if (LocalDateTime.now().isAfter(cutoff)) {
+    if (isLocked(termin)) {
       throw new AppointmentCancelWindowExpiredException();
     }
   }
@@ -410,6 +408,16 @@ public class AppointmentService {
         .terminEndTime(termin != null ? termin.getEndTime() : null)
         .pilatesPosition(pilates != null ? pilates.getPosition() : null)
         .pilatesName(pilates != null ? pilates.getName() : null)
+        .locked(isLocked(termin))
         .build();
+  }
+
+  private boolean isLocked(Termin termin) {
+    if (termin == null) {
+      return false;
+    }
+    LocalDateTime cutoff =
+        LocalDateTime.of(termin.getDate(), termin.getStartTime()).minusHours(CANCEL_WINDOW_HOURS);
+    return LocalDateTime.now().isAfter(cutoff);
   }
 }

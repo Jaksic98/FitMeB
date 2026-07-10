@@ -21,4 +21,5 @@ public class AppointmentDTO {
   private final LocalTime terminEndTime;
   private final String pilatesPosition;
   private final String pilatesName;
+  private final boolean locked;
 }

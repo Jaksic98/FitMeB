@@ -34,8 +34,7 @@ Svaka stavka ima status `[ ]`/`[x]`, kratak opis trenutnog stanja (sa file:line 
 
 ## 7. "Zaključano" (12h pre termina) — backend nije kriv, ali razmotriti computed polje
 
-- [ ] Potvrđeno: root cause je na frontendu (vidi frontend `PLAN-bugfixes.md` F6) — backend ne izlaže `locked`/`bookable` flag, samo raw `terminDate`/`terminStartTime`, što je dovoljno za frontend da sam računa. `AppointmentService.ensureWithinCancelWindow` (linije 292-304, `CANCEL_WINDOW_HOURS = 12`) postoji ali se koristi samo kao enforcement pri cancel/reschedule, ne kao read-time flag.
-- **Opciono (nice-to-have, ne blokira frontend fix):** dodati computed `boolean locked` polje u `AppointmentDTO`, računato u `toDto(...)`/`enrich(...)` koristeći isti `CANCEL_WINDOW_HOURS` — garantuje da frontend i backend nikad ne dođu iz sinhronizacije oko tačne granice. Nije neophodno za rešavanje trenutnog buga (koji je čisto frontend parsing bug).
+- [x] **Implementirano (nice-to-have).** Root cause za "sve zaključano" bug ostaje na frontendu (vidi frontend `PLAN-bugfixes.md` F6). Dodato computed `boolean locked` polje u `AppointmentDTO`, računato u `AppointmentService.toDto(...)` preko novog `isLocked(Termin)` helpera koji koristi isti `CANCEL_WINDOW_HOURS` — `ensureWithinCancelWindow` refaktorisan da poziva isti helper (DRY, umesto duplirane cutoff-logike). Frontend sad može da koristi ovaj flag direktno umesto sopstvenog parsing-a. Testovi: `givenAppointmentWithinCancelWindow_whenBooked_thenLockedIsTrue`, `givenAppointmentFarInFuture_whenBooked_thenLockedIsFalse`. Full suite 159/159.
 
 ## 8. Puni CRUD za admin nad rezervacijama (`/admin/rezervacije`)
 
