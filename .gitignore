@@ -16,3 +16,6 @@ logs/
 
 # Claude
 .claude/
+
+# Frontend build (built in FitmeF, copied here before packaging - see docs/deploy/README.md)
+src/main/resources/static/

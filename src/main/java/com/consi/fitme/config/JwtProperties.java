@@ -14,4 +14,5 @@ public class JwtProperties {
   private String cookieName;
   private int cookieExpiry;
   private boolean cookieSecure = true;
+  private String cookieSameSite = "None";
 }

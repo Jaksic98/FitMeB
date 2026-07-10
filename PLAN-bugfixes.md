@@ -54,3 +54,15 @@ Svaka stavka ima status `[ ]`/`[x]`, kratak opis trenutnog stanja (sa file:line 
 ## 11. Tekst na `/admin/raspored` — nije backend
 
 - [x] Potvrđeno pretragom `src/main/resources/` — nema i18n/message bundle-a, string ne postoji nigde u backend kodu. Čisto frontend UI copy, vidi frontend `PLAN-bugfixes.md` F8.
+
+## 12. Klijent self-cancel treba da vrati +1 kredit
+
+- [x] **Rešeno.** `updateAppointment` cancel grana je do sada refund-ovala kredit samo kad `isAdmin && !currentUser.getId().equals(ownerUserId)` (admin otkazuje tuđu rezervaciju) — klijent koji otkazuje sopstvenu rezervaciju nije dobijao kredit nazad. Uslov promenjen na `!isAdmin || !currentUser.getId().equals(ownerUserId)`, što refund-uje u sva tri slučaja osim kad admin otkazuje sopstvenu (nikad-potrošenu) rezervaciju. Postojeći test `givenBookedAppointmentFarInFuture_whenClientCancels_thenReleasesSlotWithoutRefundingCredit` je preimenovan/ažuriran u `...ThenReleasesSlotAndRefundsCredit` (očekivanje 2→3). Full suite zeleno.
+
+## 13. Reschedule na dan gde klijent već ima drugu rezervaciju nije blokiran
+
+- [x] **Rešeno.** Pravilo "max 1 termin dnevno" (stavka 5) se proveravalo samo u `bookAppointment`, ne i u `reschedule()` — klijent je mogao da premesti postojeću rezervaciju na dan kad već ima drugu, zaobilazeći pravilo. `hasBookedAppointmentOnDate` sad prima opcioni `excludeAppointmentId` (izuzima appointment koji se premešta, da se dozvoli premeštanje unutar istog dana), `reschedule()` prima `isAdmin` i baca `DuplicateAppointmentOnSameDayException` za non-admin kad ciljni datum već ima drugu BOOKED rezervaciju. Admin bypass-uje proveru (isti obrazac kao ownership/cancel-window). Testovi: `givenClientWithBookingOnOtherDay_whenReschedulingIntoThatDay_thenThrowsDuplicateAppointmentOnSameDayException`, `givenClientBooking_whenReschedulingWithinSameDay_thenSucceeds`, `givenAdminReschedulingClientBooking_whenTargetDateHasClientBooking_thenBypassesDuplicateCheck`.
+
+## 14. Filter po vremenu (startTime) na admin/termini
+
+- [x] **Rešeno.** `TerminSearchRequestDTO` dobio `startTime` (`LocalTime`, `@DateTimeFormat(ISO.TIME)`), `TerminRepository` dobio `findAllByStatusNotAndStartTime`/`findAllByStatusNotAndDateAndStartTime`, `TerminService.getAllTermini` grana na kombinaciju date/startTime filtera. Testovi u `TerminServiceIT`: `givenStartTimeFilter_...`, `givenDateAndStartTimeFilter_...`.
