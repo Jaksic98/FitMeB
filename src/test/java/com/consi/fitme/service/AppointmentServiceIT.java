@@ -287,8 +287,7 @@ class AppointmentServiceIT {
   }
 
   @Test
-  void
-      givenBookedAppointmentFarInFuture_whenClientCancels_thenReleasesSlotWithoutRefundingCredit() {
+  void givenBookedAppointmentFarInFuture_whenClientCancels_thenReleasesSlotAndRefundsCredit() {
     UserDTO client = createActiveClient(seed(), 3);
     Long appointmentId =
         createAppointment(farFutureDate(), LocalTime.of(9, 0), LocalTime.of(10, 0));
@@ -303,7 +302,7 @@ class AppointmentServiceIT {
     assertThat(canceled.getUserId()).isNull();
 
     User persistedClient = userRepository.findById(client.getId()).orElseThrow();
-    assertThat(persistedClient.getRemainingAppointments()).isEqualTo(2);
+    assertThat(persistedClient.getRemainingAppointments()).isEqualTo(3);
   }
 
   @Test
@@ -470,6 +469,81 @@ class AppointmentServiceIT {
 
     assertThatThrownBy(() -> service.updateAppointment(originalAppointmentId, rescheduleRequest))
         .isInstanceOf(AppointmentNotAvailableException.class);
+  }
+
+  @Test
+  void
+      givenClientWithBookingOnOtherDay_whenReschedulingIntoThatDay_thenThrowsDuplicateAppointmentOnSameDayException() {
+    UserDTO client = createActiveClient(seed(), 3);
+    LocalDate conflictingDate = farFutureDate();
+    Long appointmentOnConflictingDate =
+        createAppointment(conflictingDate, LocalTime.of(9, 0), LocalTime.of(10, 0));
+    Long appointmentToReschedule =
+        createAppointment(conflictingDate.plusDays(1), LocalTime.of(9, 0), LocalTime.of(10, 0));
+    Long targetAppointmentOnConflictingDate =
+        createAppointment(conflictingDate, LocalTime.of(11, 0), LocalTime.of(12, 0));
+
+    authenticateAs(client.getId(), "CLIENT");
+    service.bookAppointment(
+        BookAppointmentRequestDTO.builder().appointmentId(appointmentOnConflictingDate).build());
+    service.bookAppointment(
+        BookAppointmentRequestDTO.builder().appointmentId(appointmentToReschedule).build());
+    UpdateAppointmentRequestDTO rescheduleRequest =
+        UpdateAppointmentRequestDTO.builder()
+            .targetAppointmentId(targetAppointmentOnConflictingDate)
+            .build();
+
+    assertThatThrownBy(() -> service.updateAppointment(appointmentToReschedule, rescheduleRequest))
+        .isInstanceOf(DuplicateAppointmentOnSameDayException.class);
+  }
+
+  @Test
+  void givenClientBooking_whenReschedulingWithinSameDay_thenSucceeds() {
+    UserDTO client = createActiveClient(seed(), 3);
+    LocalDate date = farFutureDate();
+    Long originalAppointmentId = createAppointment(date, LocalTime.of(9, 0), LocalTime.of(10, 0));
+    Long targetAppointmentId = createAppointment(date, LocalTime.of(11, 0), LocalTime.of(12, 0));
+
+    authenticateAs(client.getId(), "CLIENT");
+    service.bookAppointment(
+        BookAppointmentRequestDTO.builder().appointmentId(originalAppointmentId).build());
+    UpdateAppointmentRequestDTO rescheduleRequest =
+        UpdateAppointmentRequestDTO.builder().targetAppointmentId(targetAppointmentId).build();
+
+    AppointmentDTO rescheduled =
+        service.updateAppointment(originalAppointmentId, rescheduleRequest);
+
+    assertThat(rescheduled.getStatus()).isEqualTo(AppointmentStatus.BOOKED);
+  }
+
+  @Test
+  void
+      givenAdminReschedulingClientBooking_whenTargetDateHasClientBooking_thenBypassesDuplicateCheck() {
+    UserDTO client = createActiveClient(seed(), 3);
+    UserDTO admin = createActiveAdmin(seed());
+    LocalDate conflictingDate = farFutureDate();
+    Long appointmentOnConflictingDate =
+        createAppointment(conflictingDate, LocalTime.of(9, 0), LocalTime.of(10, 0));
+    Long appointmentToReschedule =
+        createAppointment(conflictingDate.plusDays(1), LocalTime.of(9, 0), LocalTime.of(10, 0));
+    Long targetAppointmentOnConflictingDate =
+        createAppointment(conflictingDate, LocalTime.of(11, 0), LocalTime.of(12, 0));
+
+    authenticateAs(client.getId(), "CLIENT");
+    service.bookAppointment(
+        BookAppointmentRequestDTO.builder().appointmentId(appointmentOnConflictingDate).build());
+    service.bookAppointment(
+        BookAppointmentRequestDTO.builder().appointmentId(appointmentToReschedule).build());
+
+    authenticateAs(admin.getId(), "ADMIN");
+    AppointmentDTO rescheduled =
+        service.updateAppointment(
+            appointmentToReschedule,
+            UpdateAppointmentRequestDTO.builder()
+                .targetAppointmentId(targetAppointmentOnConflictingDate)
+                .build());
+
+    assertThat(rescheduled.getStatus()).isEqualTo(AppointmentStatus.BOOKED);
   }
 
   @Test

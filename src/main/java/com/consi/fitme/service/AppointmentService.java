@@ -206,7 +206,7 @@ public class AppointmentService {
       Appointment saved = repository.save(appointment);
       appointmentReminderService.cancelReminders(saved.getId());
 
-      if (isAdmin && !currentUser.getId().equals(ownerUserId)) {
+      if (!isAdmin || !currentUser.getId().equals(ownerUserId)) {
         refundAppointmentCredit(ownerUserId);
       }
 
@@ -215,7 +215,8 @@ public class AppointmentService {
       return newState;
     }
 
-    return reschedule(appointment, updateAppointmentRequestDTO.getTargetAppointmentId(), oldState);
+    return reschedule(
+        appointment, updateAppointmentRequestDTO.getTargetAppointmentId(), oldState, isAdmin);
   }
 
   @Transactional
@@ -296,12 +297,24 @@ public class AppointmentService {
   }
 
   private AppointmentDTO reschedule(
-      Appointment sourceAppointment, Long targetAppointmentId, AppointmentDTO sourceOldState) {
+      Appointment sourceAppointment,
+      Long targetAppointmentId,
+      AppointmentDTO sourceOldState,
+      boolean isAdmin) {
     Appointment targetAppointment = findOrThrow(targetAppointmentId);
     ensureSlotBookable(targetAppointment);
     AppointmentDTO targetOldState = toDto(targetAppointment);
 
     Long bookedUserId = sourceAppointment.getUserId();
+
+    if (!isAdmin) {
+      Termin targetTermin =
+          terminRepository.findById(targetAppointment.getTerminId()).orElseThrow();
+      if (hasBookedAppointmentOnDate(
+          bookedUserId, targetTermin.getDate(), sourceAppointment.getId())) {
+        throw new DuplicateAppointmentOnSameDayException();
+      }
+    }
 
     sourceAppointment.setStatus(AppointmentStatus.AVAILABLE);
     sourceAppointment.setUserId(null);
@@ -331,9 +344,15 @@ public class AppointmentService {
   }
 
   private boolean hasBookedAppointmentOnDate(Long userId, LocalDate date) {
+    return hasBookedAppointmentOnDate(userId, date, null);
+  }
+
+  private boolean hasBookedAppointmentOnDate(
+      Long userId, LocalDate date, Long excludeAppointmentId) {
     List<Long> bookedTerminIds =
         repository.findAllByUserId(userId).stream()
             .filter(a -> a.getStatus() == AppointmentStatus.BOOKED)
+            .filter(a -> excludeAppointmentId == null || !a.getId().equals(excludeAppointmentId))
             .map(Appointment::getTerminId)
             .distinct()
             .toList();
