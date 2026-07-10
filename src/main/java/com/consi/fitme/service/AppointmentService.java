@@ -1,6 +1,7 @@
 package com.consi.fitme.service;
 
 import com.consi.fitme.dto.AppointmentDTO;
+import com.consi.fitme.dto.request.AdminUpdateAppointmentRequestDTO;
 import com.consi.fitme.dto.request.AppointmentSearchRequestDTO;
 import com.consi.fitme.dto.request.BookAppointmentRequestDTO;
 import com.consi.fitme.dto.request.UpdateAppointmentRequestDTO;
@@ -14,6 +15,8 @@ import com.consi.fitme.exception.appointment.AppointmentUserRequiredException;
 import com.consi.fitme.exception.appointment.DuplicateAppointmentOnSameDayException;
 import com.consi.fitme.exception.appointment.MembershipExpiredException;
 import com.consi.fitme.exception.appointment.NoRemainingAppointmentsException;
+import com.consi.fitme.exception.pilates.PilatesNotFoundException;
+import com.consi.fitme.exception.termin.TerminNotFoundException;
 import com.consi.fitme.exception.user.UserNotFoundException;
 import com.consi.fitme.model.AppointmentStatus;
 import com.consi.fitme.model.Status;
@@ -219,9 +222,77 @@ public class AppointmentService {
   public MessageResponseDTO deleteAppointment(Long id) {
     Appointment appointment = findOrThrow(id);
     AppointmentDTO oldState = toDto(appointment);
+
+    if (appointment.getStatus() == AppointmentStatus.BOOKED) {
+      appointmentReminderService.cancelReminders(id);
+      if (!resolveCurrentUser().getId().equals(appointment.getUserId())) {
+        refundAppointmentCredit(appointment.getUserId());
+      }
+    }
+
     repository.delete(appointment);
     auditLogService.logDelete(ENTITY_TYPE, id, oldState);
     return new MessageResponseDTO("Uspešno obrisan appointment za ID: " + id);
+  }
+
+  @Transactional
+  public AppointmentDTO adminUpdateAppointment(Long id, AdminUpdateAppointmentRequestDTO patch) {
+    Appointment appointment = findOrThrow(id);
+    AppointmentDTO oldState = toDto(appointment);
+    AppointmentStatus oldStatus = appointment.getStatus();
+
+    Long nextTerminId =
+        patch.getTerminId() != null ? patch.getTerminId() : appointment.getTerminId();
+    Long nextPilatesId =
+        patch.getPilatesId() != null ? patch.getPilatesId() : appointment.getPilatesId();
+    AppointmentStatus nextStatus = patch.getStatus() != null ? patch.getStatus() : oldStatus;
+
+    if (patch.getTerminId() != null && !terminRepository.existsById(patch.getTerminId())) {
+      throw new TerminNotFoundException(patch.getTerminId());
+    }
+    if (patch.getPilatesId() != null && !pilatesRepository.existsById(patch.getPilatesId())) {
+      throw new PilatesNotFoundException(patch.getPilatesId());
+    }
+
+    boolean slotChanged =
+        !nextTerminId.equals(appointment.getTerminId())
+            || !nextPilatesId.equals(appointment.getPilatesId());
+    if (slotChanged && repository.existsByTerminIdAndPilatesId(nextTerminId, nextPilatesId)) {
+      throw new AppointmentNotAvailableException();
+    }
+
+    Long nextUserId = null;
+    if (nextStatus == AppointmentStatus.BOOKED) {
+      nextUserId = patch.getUserId() != null ? patch.getUserId() : appointment.getUserId();
+      if (nextUserId == null) {
+        throw new AppointmentUserRequiredException();
+      }
+      if (!userRepository.existsById(nextUserId)) {
+        throw new UserNotFoundException(nextUserId);
+      }
+    }
+
+    appointment.setTerminId(nextTerminId);
+    appointment.setPilatesId(nextPilatesId);
+    appointment.setStatus(nextStatus);
+    // Namerno se ne dira remainingAppointments/membershipExpiresAt ovde — ovo je admin
+    // popravka podataka, ne booking akcija (spending/refund kredita ostaje isključivo
+    // u bookAppointment/updateAppointment).
+    appointment.setUserId(nextUserId);
+    Appointment saved = repository.save(appointment);
+
+    if (oldStatus == AppointmentStatus.BOOKED && nextStatus != AppointmentStatus.BOOKED) {
+      appointmentReminderService.cancelReminders(saved.getId());
+    } else if (nextStatus == AppointmentStatus.BOOKED) {
+      Termin termin = terminRepository.findById(nextTerminId).orElseThrow();
+      appointmentReminderService.cancelReminders(saved.getId());
+      appointmentReminderService.scheduleReminders(
+          saved.getId(), LocalDateTime.of(termin.getDate(), termin.getStartTime()));
+    }
+
+    AppointmentDTO newState = toDto(saved);
+    auditLogService.logUpdate(ENTITY_TYPE, saved.getId(), oldState, newState);
+    return newState;
   }
 
   private AppointmentDTO reschedule(

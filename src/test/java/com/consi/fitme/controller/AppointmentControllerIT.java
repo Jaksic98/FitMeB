@@ -6,11 +6,13 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.consi.fitme.dto.AppointmentDTO;
+import com.consi.fitme.dto.request.AdminUpdateAppointmentRequestDTO;
 import com.consi.fitme.dto.request.BookAppointmentRequestDTO;
 import com.consi.fitme.dto.request.UpdateAppointmentRequestDTO;
 import com.consi.fitme.dto.response.MessageResponseDTO;
@@ -57,10 +59,18 @@ class AppointmentControllerIT {
     when(service.getAllAppointments(any())).thenReturn(List.of(appointmentDto));
     when(service.getAppointment(1L)).thenReturn(appointmentDto);
     when(service.deleteAppointment(1L)).thenReturn(new MessageResponseDTO("deleted"));
+    when(service.adminUpdateAppointment(anyLong(), any(AdminUpdateAppointmentRequestDTO.class)))
+        .thenReturn(appointmentDto);
 
     mockMvc.perform(get("/api/appointments")).andExpect(status().isOk());
     mockMvc.perform(get("/api/appointments/1")).andExpect(status().isOk());
     mockMvc.perform(delete("/api/appointments/1")).andExpect(status().isOk());
+    mockMvc
+        .perform(
+            patch("/api/appointments/1/admin")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+        .andExpect(status().isOk());
   }
 
   @Test
@@ -69,6 +79,12 @@ class AppointmentControllerIT {
     mockMvc.perform(get("/api/appointments")).andExpect(status().isForbidden());
     mockMvc.perform(get("/api/appointments/1")).andExpect(status().isForbidden());
     mockMvc.perform(delete("/api/appointments/1")).andExpect(status().isForbidden());
+    mockMvc
+        .perform(
+            patch("/api/appointments/1/admin")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+        .andExpect(status().isForbidden());
   }
 
   @Test

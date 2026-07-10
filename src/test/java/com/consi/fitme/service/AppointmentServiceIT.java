@@ -7,6 +7,7 @@ import com.consi.fitme.dto.AppointmentDTO;
 import com.consi.fitme.dto.PilatesDTO;
 import com.consi.fitme.dto.TerminDTO;
 import com.consi.fitme.dto.UserDTO;
+import com.consi.fitme.dto.request.AdminUpdateAppointmentRequestDTO;
 import com.consi.fitme.dto.request.AppointmentSearchRequestDTO;
 import com.consi.fitme.dto.request.BookAppointmentRequestDTO;
 import com.consi.fitme.dto.request.CreatePilatesRequestDTO;
@@ -780,6 +781,140 @@ class AppointmentServiceIT {
     service.deleteAppointment(appointmentId);
 
     assertThat(appointmentRepository.findById(appointmentId)).isEmpty();
+  }
+
+  @Test
+  void givenAdminDeletesClientBooking_whenDeleteAppointment_thenRefundsCreditAndCancelsReminders() {
+    UserDTO client = createActiveClient(seed(), 3);
+    UserDTO admin = createActiveAdmin(seed());
+    Long appointmentId =
+        createAppointment(farFutureDate(), LocalTime.of(9, 0), LocalTime.of(10, 0));
+
+    authenticateAs(client.getId(), "CLIENT");
+    service.bookAppointment(
+        BookAppointmentRequestDTO.builder().appointmentId(appointmentId).build());
+
+    authenticateAs(admin.getId(), "ADMIN");
+    service.deleteAppointment(appointmentId);
+
+    User persistedClient = userRepository.findById(client.getId()).orElseThrow();
+    assertThat(persistedClient.getRemainingAppointments()).isEqualTo(3);
+    assertThat(appointmentReminderRepository.findAllByAppointmentIdAndSentAtIsNull(appointmentId))
+        .isEmpty();
+  }
+
+  @Test
+  void givenAdminDeletesOwnBooking_whenDeleteAppointment_thenDoesNotRefundCredit() {
+    UserDTO admin = createActiveAdmin(seed());
+    Long appointmentId =
+        createAppointment(farFutureDate(), LocalTime.of(9, 0), LocalTime.of(10, 0));
+
+    authenticateAs(admin.getId(), "ADMIN");
+    service.bookAppointment(
+        BookAppointmentRequestDTO.builder()
+            .appointmentId(appointmentId)
+            .userId(admin.getId())
+            .build());
+    Integer remainingBeforeDelete =
+        userRepository.findById(admin.getId()).orElseThrow().getRemainingAppointments();
+
+    service.deleteAppointment(appointmentId);
+
+    Integer remainingAfterDelete =
+        userRepository.findById(admin.getId()).orElseThrow().getRemainingAppointments();
+    assertThat(remainingAfterDelete).isEqualTo(remainingBeforeDelete);
+  }
+
+  @Test
+  void givenBookedAppointment_whenAdminReassignsToAnotherClient_thenUpdatesOwnerAndReminders() {
+    UserDTO originalClient = createActiveClient(seed(), 3);
+    UserDTO newClient = createActiveClient(seed(), 3);
+    UserDTO admin = createActiveAdmin(seed());
+    Long appointmentId =
+        createAppointment(farFutureDate(), LocalTime.of(9, 0), LocalTime.of(10, 0));
+
+    authenticateAs(originalClient.getId(), "CLIENT");
+    service.bookAppointment(
+        BookAppointmentRequestDTO.builder().appointmentId(appointmentId).build());
+
+    authenticateAs(admin.getId(), "ADMIN");
+    AppointmentDTO updated =
+        service.adminUpdateAppointment(
+            appointmentId,
+            AdminUpdateAppointmentRequestDTO.builder().userId(newClient.getId()).build());
+
+    assertThat(updated.getUserId()).isEqualTo(newClient.getId());
+    assertThat(updated.getStatus()).isEqualTo(AppointmentStatus.BOOKED);
+    assertThat(appointmentReminderRepository.findAllByAppointmentIdAndSentAtIsNull(appointmentId))
+        .isNotEmpty();
+  }
+
+  @Test
+  void givenBookedAppointment_whenAdminPatchesStatusToAvailable_thenClearsUserAndReminders() {
+    UserDTO client = createActiveClient(seed(), 3);
+    UserDTO admin = createActiveAdmin(seed());
+    Long appointmentId =
+        createAppointment(farFutureDate(), LocalTime.of(9, 0), LocalTime.of(10, 0));
+
+    authenticateAs(client.getId(), "CLIENT");
+    service.bookAppointment(
+        BookAppointmentRequestDTO.builder().appointmentId(appointmentId).build());
+
+    authenticateAs(admin.getId(), "ADMIN");
+    AppointmentDTO updated =
+        service.adminUpdateAppointment(
+            appointmentId,
+            AdminUpdateAppointmentRequestDTO.builder().status(AppointmentStatus.AVAILABLE).build());
+
+    assertThat(updated.getStatus()).isEqualTo(AppointmentStatus.AVAILABLE);
+    assertThat(updated.getUserId()).isNull();
+    assertThat(appointmentReminderRepository.findAllByAppointmentIdAndSentAtIsNull(appointmentId))
+        .isEmpty();
+  }
+
+  @Test
+  void
+      givenAvailableAppointment_whenAdminPatchesToBookedWithoutUserId_thenThrowsAppointmentUserRequiredException() {
+    UserDTO admin = createActiveAdmin(seed());
+    Long appointmentId =
+        createAppointment(farFutureDate(), LocalTime.of(9, 0), LocalTime.of(10, 0));
+    authenticateAs(admin.getId(), "ADMIN");
+    AdminUpdateAppointmentRequestDTO patch =
+        AdminUpdateAppointmentRequestDTO.builder().status(AppointmentStatus.BOOKED).build();
+
+    assertThatThrownBy(() -> service.adminUpdateAppointment(appointmentId, patch))
+        .isInstanceOf(AppointmentUserRequiredException.class);
+  }
+
+  @Test
+  void
+      givenTwoAppointmentsOnSameSlotCombo_whenAdminReassignsToTakenSlot_thenThrowsAppointmentNotAvailableException() {
+    UserDTO admin = createActiveAdmin(seed());
+    LocalDate date = farFutureDate();
+    Long firstAppointmentId = createAppointment(date, LocalTime.of(9, 0), LocalTime.of(10, 0));
+    PilatesDTO secondPilates =
+        pilatesService.createPilates(
+            CreatePilatesRequestDTO.builder().position("P2." + seed()).name("Cadillac").build());
+    TerminDTO termin =
+        terminService.getTermin(
+            appointmentRepository.findById(firstAppointmentId).orElseThrow().getTerminId());
+    Long secondAppointmentId =
+        appointmentRepository.findAll().stream()
+            .filter(
+                a ->
+                    a.getTerminId().equals(termin.getId())
+                        && a.getPilatesId().equals(secondPilates.getId()))
+            .findFirst()
+            .orElseThrow()
+            .getId();
+
+    authenticateAs(admin.getId(), "ADMIN");
+    AdminUpdateAppointmentRequestDTO patch =
+        AdminUpdateAppointmentRequestDTO.builder().pilatesId(secondPilates.getId()).build();
+
+    assertThatThrownBy(() -> service.adminUpdateAppointment(firstAppointmentId, patch))
+        .isInstanceOf(AppointmentNotAvailableException.class);
+    assertThat(secondAppointmentId).isNotNull();
   }
 
   private UserDTO createActiveClient(String seed, int remainingAppointments) {

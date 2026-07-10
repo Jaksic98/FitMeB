@@ -38,14 +38,10 @@ Svaka stavka ima status `[ ]`/`[x]`, kratak opis trenutnog stanja (sa file:line 
 
 ## 8. Puni CRUD za admin nad rezervacijama (`/admin/rezervacije`)
 
-- [ ] Trenutno postoji: `GET` lista (sa filterima), `GET /{id}`, `GET /available`, `GET /user/{userId}`, `POST` (book — zauzima postojeći AVAILABLE slot, ne kreira novi red), `PUT /{id}` (cancel/reschedule kroz state machine), `DELETE /{id}` (**hard delete bez guardova** — briše i BOOKED redove bez refund-a kredita ili otkazivanja podsetnika, `service/AppointmentService.java:209-216`).
-- **Gapovi:**
-  - Nema endpoint-a za direktnu izmenu proizvoljnih polja appointment-a (reassign korisnika/mašine/vremena) van cancel/reschedule state machine-a.
-  - `DELETE` na BOOKED appointment tiho gubi rezervaciju bez refund-a kredita — **treba uskladiti sa stavkom 6** (ili blokirati brisanje BOOKED redova po uzoru na `TerminService.deleteTermin`'s `TerminDeleteBlockedException`, ili refund-ovati kredit + otkazati podsetnike pre brisanja).
-  - "Kreiranje" nove rezervacije za klijenta već radi kroz postojeći `POST /api/appointments` (admin prosleđuje `userId`) — frontend to trenutno ne koristi (vidi frontend F7), ali backend podrška već postoji.
-- **Plan (potvrditi obim sa korisnikom pre implementacije — ovo je najmanje precizirana stavka):**
-  1. Uskladiti `deleteAppointment` sa stavkom 6: ili refund `+1` kredit vlasniku + `appointmentReminderService.cancelReminders(id)` pre brisanja BOOKED reda, ili baciti `AppointmentDeleteBlockedException` i tražiti da admin prvo otkaže.
-  2. Ako je zaista potreban direktan admin-edit (reassign bez cancel+rebook ciklusa) — nov endpoint npr. `PATCH /api/appointments/{id}/admin`, ADMIN-only, novi `AppointmentService.adminUpdateAppointment(...)`. **Preporuka: ne implementirati dok se ne potvrdi da postojeći book/cancel/reschedule/delete tok zaista ne pokriva realan admin use-case** — YAGNI dok ne postoji konkretan scenario koji trenutni API ne pokriva.
+- [x] **Rešeno (korisnik potvrdio 2026-07-10: i bezbedan delete i novi PATCH endpoint).**
+  1. **Bezbedan delete:** `deleteAppointment` sad, pre brisanja BOOKED reda, otkazuje podsetnike (`appointmentReminderService.cancelReminders`) i refund-uje `+1` kredit vlasniku — po istoj politici kao stavka 6 (bez refund-a ako admin briše sopstvenu rezervaciju).
+  2. **Nov endpoint:** `PATCH /api/appointments/{id}/admin`, ADMIN-only, `AdminUpdateAppointmentRequestDTO` (`status`/`userId`/`terminId`/`pilatesId`, sva polja opciona — patch semantika). `AppointmentService.adminUpdateAppointment`: validira postojanje ciljnog termina/pilatesa/korisnika, blokira reassign na već zauzetu `(terminId, pilatesId)` kombinaciju (`AppointmentNotAvailableException`), zahteva `userId` ako rezultujući status postaje `BOOKED` (`AppointmentUserRequiredException`), automatski briše `userId` ako status nije `BOOKED` (čuva invarijantu). Podsetnici se otkazuju/reprogramiraju u skladu sa promenom statusa. **Namerno ne dira `remainingAppointments`/`membershipExpiresAt`** — ovo je admin popravka podataka, ne booking akcija.
+  - Testovi u `AppointmentServiceIT`: safe-delete refund/no-refund, reassign na drugog klijenta, patch status→AVAILABLE čisti `userId` i podsetnike, patch→BOOKED bez `userId` baca grešku, reassign na zauzet slot baca grešku. `AppointmentControllerIT`: ADMIN 200, CLIENT 403 na novom endpoint-u. Full suite 165/165.
 
 ## 9. Filter po datumu na admin rezervacijama — backend već radi ispravno
 

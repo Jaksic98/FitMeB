@@ -995,6 +995,35 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "Admin Update Appointment (direct patch)",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"BOOKED\",\n  \"userId\": {{userId}}\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/appointments/{{appointmentId}}/admin",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appointments",
+								"{{appointmentId}}",
+								"admin"
+							]
+						}
+					},
+					"response": []
 				}
 			]
 		}

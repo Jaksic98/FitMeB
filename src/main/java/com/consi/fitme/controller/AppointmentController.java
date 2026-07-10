@@ -1,6 +1,7 @@
 package com.consi.fitme.controller;
 
 import com.consi.fitme.dto.AppointmentDTO;
+import com.consi.fitme.dto.request.AdminUpdateAppointmentRequestDTO;
 import com.consi.fitme.dto.request.AppointmentSearchRequestDTO;
 import com.consi.fitme.dto.request.BookAppointmentRequestDTO;
 import com.consi.fitme.dto.request.UpdateAppointmentRequestDTO;
@@ -20,6 +21,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -111,6 +113,19 @@ public class AppointmentController {
         ResponseUtil.success(
             service.deleteAppointment(id),
             "Appointment je uspešno obrisan",
+            request.getRequestURI()));
+  }
+
+  @PatchMapping("/{id}/admin")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<SuccessResponseDTO<AppointmentDTO>> adminUpdateAppointment(
+      @PathVariable Long id,
+      @RequestBody AdminUpdateAppointmentRequestDTO adminUpdateAppointmentRequestDTO,
+      HttpServletRequest request) {
+    return ResponseEntity.ok(
+        ResponseUtil.success(
+            service.adminUpdateAppointment(id, adminUpdateAppointmentRequestDTO),
+            "Appointment je uspešno ažuriran",
             request.getRequestURI()));
   }
 }
