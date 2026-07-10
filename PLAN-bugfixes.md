@@ -15,15 +15,7 @@ Svaka stavka ima status `[ ]`/`[x]`, kratak opis trenutnog stanja (sa file:line 
 
 ## 3. Postman kolekcija — nepotpuna
 
-- [ ] Postojeća kolekcija (`src/main/resources/postman/postman_collection.json`) pokriva samo: `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`, `GET /api/auth/validate-session`, `GET/POST /api/users`, `GET/PUT/DELETE /api/users/{userId}`.
-- **Nedostaje (dodati kao nove request-ove u istoj kolekciji, grupisano po folderima po kontroleru):**
-  - **Auth:** `POST /api/auth/register`, `GET /api/auth/activate?token=`, `POST /api/auth/phone/send-otp`, `POST /api/auth/phone/verify-otp`.
-  - **Pilates** (`/api/pilates`, ADMIN): `GET` (lista), `GET /{id}`, `POST`, `PUT /{id}`, `DELETE /{id}`.
-  - **Termini** (`/api/termini`, ADMIN): `GET` (lista, sa `page`/`size`/`date` nakon stavke 1-2), `GET /{id}`, `POST`, `PUT /{id}`, `DELETE /{id}`.
-  - **TerminTemplate** (`/api/termin-templates`, ADMIN): `GET`, `GET /{id}`, `POST`, `PUT /{id}`, `DELETE /{id}`.
-  - **Appointments** (`/api/appointments`): `GET` (admin lista, filteri `userId`/`pilatesId`/`dateFrom`/`dateTo`), `GET /{id}`, `GET /available?date=`, `GET /user/{userId}`, `POST` (book), `PUT /{id}` (cancel/reschedule), `DELETE /{id}`.
-  - Za svaki request navesti auth requirement (ADMIN/CLIENT/public) i primer body-ja gde je relevantno (npr. `CreateUserRequestDTO`, `BookAppointmentRequestDTO`, `UpdateAppointmentRequestDTO`).
-- Nema promena koda — samo ažuriranje `postman_collection.json`.
+- [x] **Rešeno.** Dodati folderi/request-ovi u `src/main/resources/postman/postman_collection.json`: Auth (Register, Activate Account, Send/Verify Phone OTP), Pilates (puni CRUD), Termini (puni CRUD + `page`/`size`/`sortField`/`direction`/`date` query parametri iz stavke 1), Termin Templates (puni CRUD), Appointments (Get All/By Id/Available/By User Id, Book, Cancel, Reschedule, Delete). Nove kolekcijske varijable: `pilatesId`, `terminId`, `terminTemplateId`, `appointmentId`, `targetAppointmentId`, `activationToken`.
 
 ## 4. Klijent vidi prošle termine kao dostupne za rezervaciju
 

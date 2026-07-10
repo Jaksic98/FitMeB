@@ -60,6 +60,65 @@
 					"response": []
 				},
 				{
+					"name": "Register",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"test.user.1\",\n  \"fullName\": \"Test User 1\",\n  \"email\": \"test.user.1@fitme.com\",\n  \"phoneNumber\": \"+381601234567\",\n  \"password\": \"test.user.1.fitme123!\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Activate Account",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/activate?token={{activationToken}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"activate"
+							],
+							"query": [
+								{
+									"key": "token",
+									"value": "{{activationToken}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Me",
 					"request": {
 						"method": "GET",
@@ -92,6 +151,70 @@
 								"api",
 								"auth",
 								"validate-session"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Send Phone OTP",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phoneNumber\": \"+381601234567\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/phone/send-otp",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"phone",
+								"send-otp"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Verify Phone OTP",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phoneNumber\": \"+381601234567\",\n  \"code\": \"123456\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/phone/verify-otp",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"phone",
+								"verify-otp"
 							]
 						}
 					},
@@ -150,6 +273,11 @@
 									"disabled": true
 								},
 								{
+									"key": "q",
+									"value": "marko",
+									"disabled": true
+								},
+								{
 									"key": "status",
 									"value": "ACTIVE,INACTIVE",
 									"disabled": true
@@ -162,6 +290,26 @@
 								{
 									"key": "roles",
 									"value": "JUDGE,ADMIN",
+									"disabled": true
+								},
+								{
+									"key": "page",
+									"value": "1",
+									"disabled": true
+								},
+								{
+									"key": "size",
+									"value": "10",
+									"disabled": true
+								},
+								{
+									"key": "sortField",
+									"value": "id",
+									"disabled": true
+								},
+								{
+									"key": "direction",
+									"value": "DESC",
 									"disabled": true
 								}
 							]
@@ -195,7 +343,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"username\": \"test.user.1\",\n  \"fullName\": \"Test User 1\",\n  \"email\": \"test.user.1@fitme.com\",\n  \"password\": \"test.user.1.fitme123!\"\n}",
+							"raw": "{\n  \"username\": \"test.user.1\",\n  \"fullName\": \"Test User 1\",\n  \"email\": \"test.user.1@fitme.com\",\n  \"phoneNumber\": \"+381601234567\",\n  \"password\": \"test.user.1.fitme123!\",\n  \"roles\": [\"CLIENT\"],\n  \"remainingAppointments\": 8\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -263,6 +411,592 @@
 					"response": []
 				}
 			]
+		},
+		{
+			"name": "Pilates",
+			"item": [
+				{
+					"name": "Get All Pilates",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/pilates",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"pilates"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Pilates By Id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/pilates/{{pilatesId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"pilates",
+								"{{pilatesId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Pilates",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"position\": \"R1\",\n  \"name\": \"Reformer\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/pilates",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"pilates"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Pilates",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Reformer (renoviran)\",\n  \"status\": \"ACTIVE\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/pilates/{{pilatesId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"pilates",
+								"{{pilatesId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Pilates",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/pilates/{{pilatesId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"pilates",
+								"{{pilatesId}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Termini",
+			"item": [
+				{
+					"name": "Get All Termini",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/termini",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"termini"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"disabled": true
+								},
+								{
+									"key": "size",
+									"value": "10",
+									"disabled": true
+								},
+								{
+									"key": "sortField",
+									"value": "date",
+									"disabled": true
+								},
+								{
+									"key": "direction",
+									"value": "ASC",
+									"disabled": true
+								},
+								{
+									"key": "date",
+									"value": "2026-07-13",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Termin By Id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/termini/{{terminId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"termini",
+								"{{terminId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Termin",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"date\": \"2026-07-13\",\n  \"startTime\": \"09:00:00\",\n  \"endTime\": \"10:00:00\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/termini",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"termini"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Termin",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"INACTIVE\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/termini/{{terminId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"termini",
+								"{{terminId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Termin",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/termini/{{terminId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"termini",
+								"{{terminId}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Termin Templates",
+			"item": [
+				{
+					"name": "Get All Termin Templates",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/termin-templates",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"termin-templates"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Termin Template By Id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/termin-templates/{{terminTemplateId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"termin-templates",
+								"{{terminTemplateId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Termin Template",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"dayOfWeek\": \"MONDAY\",\n  \"startTime\": \"09:00:00\",\n  \"endTime\": \"10:00:00\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/termin-templates",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"termin-templates"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Termin Template",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"INACTIVE\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/termin-templates/{{terminTemplateId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"termin-templates",
+								"{{terminTemplateId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Termin Template",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/termin-templates/{{terminTemplateId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"termin-templates",
+								"{{terminTemplateId}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Appointments",
+			"item": [
+				{
+					"name": "Get All Appointments (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/appointments",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appointments"
+							],
+							"query": [
+								{
+									"key": "userId",
+									"value": "{{userId}}",
+									"disabled": true
+								},
+								{
+									"key": "pilatesId",
+									"value": "{{pilatesId}}",
+									"disabled": true
+								},
+								{
+									"key": "dateFrom",
+									"value": "2026-07-01",
+									"disabled": true
+								},
+								{
+									"key": "dateTo",
+									"value": "2026-07-31",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Appointment By Id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/appointments/{{appointmentId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appointments",
+								"{{appointmentId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Available Appointments",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/appointments/available?date=2026-07-13",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appointments",
+								"available"
+							],
+							"query": [
+								{
+									"key": "date",
+									"value": "2026-07-13"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Appointments By User Id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/appointments/user/{{userId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appointments",
+								"user",
+								"{{userId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Book Appointment",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "// CLIENT self-booking: userId se ignoriše, uzima se iz sesije\n{\n  \"appointmentId\": {{appointmentId}}\n}\n// ADMIN booking u ime klijenta: userId je obavezan\n// {\n//   \"appointmentId\": {{appointmentId}},\n//   \"userId\": {{userId}}\n// }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/appointments",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appointments"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Cancel Appointment",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/appointments/{{appointmentId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appointments",
+								"{{appointmentId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Reschedule Appointment",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"targetAppointmentId\": {{targetAppointmentId}}\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/appointments/{{appointmentId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appointments",
+								"{{appointmentId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Appointment (Admin)",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/appointments/{{appointmentId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"appointments",
+								"{{appointmentId}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
 		}
 	],
 	"variable": [
@@ -273,6 +1007,30 @@
 		{
 			"key": "userId",
 			"value": "1"
+		},
+		{
+			"key": "pilatesId",
+			"value": "1"
+		},
+		{
+			"key": "terminId",
+			"value": "1"
+		},
+		{
+			"key": "terminTemplateId",
+			"value": "1"
+		},
+		{
+			"key": "appointmentId",
+			"value": "1"
+		},
+		{
+			"key": "targetAppointmentId",
+			"value": "2"
+		},
+		{
+			"key": "activationToken",
+			"value": ""
 		}
 	]
 }
