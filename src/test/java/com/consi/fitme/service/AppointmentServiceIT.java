@@ -627,6 +627,22 @@ class AppointmentServiceIT {
   }
 
   @Test
+  void givenTerminAlreadyStarted_whenGetAvailableAppointments_thenExcludesIt() {
+    Long pastAppointmentId =
+        createAppointmentForCancelWindowTest(LocalDateTime.now().minusHours(2));
+    Long futureAppointmentId =
+        createAppointment(farFutureDate(), LocalTime.of(9, 0), LocalTime.of(10, 0));
+
+    UserDTO client = createActiveClient(seed(), 3);
+    authenticateAs(client.getId(), "CLIENT");
+
+    List<AppointmentDTO> available = service.getAvailableAppointments(null);
+
+    assertThat(available).extracting(AppointmentDTO::getId).doesNotContain(pastAppointmentId);
+    assertThat(available).extracting(AppointmentDTO::getId).contains(futureAppointmentId);
+  }
+
+  @Test
   void givenAdmin_whenDeleteAppointment_thenRemovesRowPermanently() {
     UserDTO admin = createActiveAdmin(seed());
     Long appointmentId =

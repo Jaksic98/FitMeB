@@ -94,7 +94,7 @@ public class AppointmentService {
 
   public List<AppointmentDTO> getAvailableAppointments(LocalDate dateFilter) {
     List<Appointment> available = repository.findAllByStatus(AppointmentStatus.AVAILABLE);
-    List<Appointment> bookable = filterToActiveTerminAndPilates(available);
+    List<Appointment> bookable = filterToBookableAppointments(available);
 
     if (dateFilter == null) {
       return enrich(bookable);
@@ -264,7 +264,7 @@ public class AppointmentService {
     }
   }
 
-  private List<Appointment> filterToActiveTerminAndPilates(List<Appointment> appointments) {
+  private List<Appointment> filterToBookableAppointments(List<Appointment> appointments) {
     Map<Long, Termin> terminById =
         terminRepository
             .findAllById(appointments.stream().map(Appointment::getTerminId).distinct().toList())
@@ -276,6 +276,7 @@ public class AppointmentService {
             .stream()
             .collect(Collectors.toMap(Pilates::getId, Function.identity()));
 
+    LocalDateTime now = LocalDateTime.now();
     return appointments.stream()
         .filter(
             a -> {
@@ -284,7 +285,8 @@ public class AppointmentService {
               return termin != null
                   && termin.getStatus() == Status.ACTIVE
                   && pilates != null
-                  && pilates.getStatus() == Status.ACTIVE;
+                  && pilates.getStatus() == Status.ACTIVE
+                  && !LocalDateTime.of(termin.getDate(), termin.getStartTime()).isBefore(now);
             })
         .toList();
   }

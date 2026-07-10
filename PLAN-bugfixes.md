@@ -19,12 +19,8 @@ Svaka stavka ima status `[ ]`/`[x]`, kratak opis trenutnog stanja (sa file:line 
 
 ## 4. Klijent vidi prošle termine kao dostupne za rezervaciju
 
-- [ ] `AppointmentService.getAvailableAppointments(LocalDate dateFilter)` (`service/AppointmentService.java:95-110`) filtrira samo po `status = AVAILABLE` + aktivan termin/pilates (`filterToActiveTerminAndPilates`, linije 267-290) + opciono tačan datum — **nema poređenja sa trenutnim vremenom**. Ako je `dateFilter` prisutan i jednak današnjem datumu, i dalje se vraćaju svi slotovi tog dana bez obzira da li je `Termin.startTime` već prošao. Nema ni scheduled job-a koji deaktivira prošle termine (`TerminScheduler` samo generiše buduće).
-- **Plan:**
-  - U `getAvailableAppointments`, nakon što se učita `Map<Long, Termin>` (već postoji za `filterToActiveTerminAndPilates`), dodati dodatni filter: isključiti appointment čiji `Termin.date` + `Termin.startTime` je pre `LocalDateTime.now()`.
-  - Ne treba nova DTO polja — `AppointmentDTO` već nosi `terminDate`/`terminStartTime`/`terminEndTime`.
-  - `getAllAppointments` (admin audit lista) namerno ostaje nepromenjena — admin treba da vidi i prošle rezervacije.
-  - **Napomena:** frontend (`BookingPage.tsx`) rešava isti problem nezavisno na svojoj strani (vidi frontend `PLAN-bugfixes.md` F4) — ovaj backend fix je defense-in-depth (štiti i druge klijente API-ja, npr. buduću mobilnu app), ali nije blokirajući za frontend fix.
+- [x] **Rešeno.** Privatna metoda `filterToActiveTerminAndPilates` preimenovana u `filterToBookableAppointments` i proširena dodatnim uslovom: `Termin.date`+`Termin.startTime` ne sme biti pre `LocalDateTime.now()`. Test `givenTerminAlreadyStarted_whenGetAvailableAppointments_thenExcludesIt` u `AppointmentServiceIT`. `getAllAppointments` (admin audit lista) namerno nepromenjena — admin i dalje vidi prošle rezervacije. Full suite zeleno.
+- **Napomena:** frontend (`BookingPage.tsx`) rešava isti problem nezavisno na svojoj strani (vidi frontend `PLAN-bugfixes.md` F4) — ovaj backend fix je defense-in-depth (štiti i druge klijente API-ja, npr. buduću mobilnu app), nije bio blokirajući za frontend fix.
 
 ## 5. Pravilo: max 1 termin dnevno po klijentu
 
