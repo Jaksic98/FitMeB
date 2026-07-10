@@ -14,8 +14,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.consi.fitme.dto.TerminDTO;
 import com.consi.fitme.dto.request.CreateTerminRequestDTO;
+import com.consi.fitme.dto.request.TerminSearchRequestDTO;
 import com.consi.fitme.dto.request.UpdateTerminRequestDTO;
 import com.consi.fitme.dto.response.MessageResponseDTO;
+import com.consi.fitme.dto.response.PagingResponseDTO;
 import com.consi.fitme.model.Status;
 import com.consi.fitme.service.TerminService;
 import java.time.LocalDate;
@@ -59,7 +61,8 @@ class TerminControllerIT {
             .status(Status.ACTIVE)
             .build();
 
-    when(service.getAllTermini()).thenReturn(List.of(terminDto));
+    when(service.getAllTermini(any(TerminSearchRequestDTO.class)))
+        .thenReturn(new PagingResponseDTO<>(List.of(terminDto), 1, 1L, 10, 0, false));
     when(service.getTermin(1L)).thenReturn(terminDto);
     when(service.createTermin(any(CreateTerminRequestDTO.class))).thenReturn(terminDto);
     when(service.updateTermin(anyLong(), any(UpdateTerminRequestDTO.class))).thenReturn(terminDto);
@@ -125,7 +128,7 @@ class TerminControllerIT {
         .andExpect(status().isForbidden());
     mockMvc.perform(delete("/api/termini/1")).andExpect(status().isForbidden());
 
-    verify(service, never()).getAllTermini();
+    verify(service, never()).getAllTermini(any(TerminSearchRequestDTO.class));
     verify(service, never()).getTermin(anyLong());
     verify(service, never()).createTermin(any(CreateTerminRequestDTO.class));
     verify(service, never()).updateTermin(anyLong(), any(UpdateTerminRequestDTO.class));

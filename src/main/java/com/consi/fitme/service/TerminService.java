@@ -2,8 +2,10 @@ package com.consi.fitme.service;
 
 import com.consi.fitme.dto.TerminDTO;
 import com.consi.fitme.dto.request.CreateTerminRequestDTO;
+import com.consi.fitme.dto.request.TerminSearchRequestDTO;
 import com.consi.fitme.dto.request.UpdateTerminRequestDTO;
 import com.consi.fitme.dto.response.MessageResponseDTO;
+import com.consi.fitme.dto.response.PagingResponseDTO;
 import com.consi.fitme.exception.termin.InvalidTerminTimeRangeException;
 import com.consi.fitme.exception.termin.TerminDeleteBlockedException;
 import com.consi.fitme.exception.termin.TerminNotFoundException;
@@ -15,10 +17,14 @@ import com.consi.fitme.model.entity.Termin;
 import com.consi.fitme.model.entity.TerminTemplate;
 import com.consi.fitme.repository.AppointmentRepository;
 import com.consi.fitme.repository.TerminRepository;
+import com.consi.fitme.util.PaginationUtils;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,13 +32,47 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class TerminService {
 
+  private static final Set<String> ALLOWED_SORT_FIELDS =
+      Set.of("id", "date", "startTime", "endTime", "status");
+
   private final TerminRepository repository;
   private final TerminPatchMapper patchMapper;
   private final AppointmentGenerationService appointmentGenerationService;
   private final AppointmentRepository appointmentRepository;
 
-  public List<TerminDTO> getAllTermini() {
-    return repository.findAllByStatusNot(Status.DELETED).stream().map(this::toDto).toList();
+  public PagingResponseDTO<TerminDTO> getAllTermini(TerminSearchRequestDTO searchRequest) {
+    Pageable pageable = buildPageable(searchRequest);
+    Page<Termin> page =
+        searchRequest.getDate() != null
+            ? repository.findAllByStatusNotAndDate(
+                Status.DELETED, searchRequest.getDate(), pageable)
+            : repository.findAllByStatusNot(Status.DELETED, pageable);
+    List<TerminDTO> data = page.getContent().stream().map(this::toDto).toList();
+
+    return new PagingResponseDTO<>(
+        data,
+        page.getTotalPages(),
+        page.getTotalElements(),
+        page.getSize(),
+        page.getNumber(),
+        page.isEmpty());
+  }
+
+  private Pageable buildPageable(TerminSearchRequestDTO searchRequest) {
+    String sortField =
+        searchRequest.getSortField() != null
+                && ALLOWED_SORT_FIELDS.contains(searchRequest.getSortField())
+            ? searchRequest.getSortField()
+            : "date";
+    TerminSearchRequestDTO sanitized =
+        TerminSearchRequestDTO.builder()
+            .page(searchRequest.getPage())
+            .size(searchRequest.getSize())
+            .sortField(sortField)
+            .direction(searchRequest.getDirection())
+            .date(searchRequest.getDate())
+            .build();
+    return PaginationUtils.getPageable(sanitized);
   }
 
   public TerminDTO getTermin(Long id) {

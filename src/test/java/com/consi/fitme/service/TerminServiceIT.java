@@ -6,8 +6,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.consi.fitme.dto.TerminDTO;
 import com.consi.fitme.dto.request.CreatePilatesRequestDTO;
 import com.consi.fitme.dto.request.CreateTerminRequestDTO;
+import com.consi.fitme.dto.request.TerminSearchRequestDTO;
 import com.consi.fitme.dto.request.UpdateTerminRequestDTO;
 import com.consi.fitme.dto.response.MessageResponseDTO;
+import com.consi.fitme.dto.response.PagingResponseDTO;
 import com.consi.fitme.exception.termin.InvalidTerminTimeRangeException;
 import com.consi.fitme.exception.termin.TerminDeleteBlockedException;
 import com.consi.fitme.exception.termin.TerminNotFoundException;
@@ -17,7 +19,6 @@ import com.consi.fitme.model.Status;
 import com.consi.fitme.repository.AppointmentRepository;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -231,10 +232,81 @@ class TerminServiceIT {
 
     service.deleteTermin(toDeleteTermin.getId());
 
-    List<TerminDTO> allTermini = service.getAllTermini();
+    PagingResponseDTO<TerminDTO> allTermini =
+        service.getAllTermini(TerminSearchRequestDTO.builder().size(100).build());
 
-    assertThat(allTermini).extracting(TerminDTO::getId).contains(activeTermin.getId());
-    assertThat(allTermini).extracting(TerminDTO::getId).doesNotContain(toDeleteTermin.getId());
+    assertThat(allTermini.getData()).extracting(TerminDTO::getId).contains(activeTermin.getId());
+    assertThat(allTermini.getData())
+        .extracting(TerminDTO::getId)
+        .doesNotContain(toDeleteTermin.getId());
+  }
+
+  @Test
+  void givenMoreTerminiThanPageSize_whenGetAllTermini_thenReturnsRequestedPage() {
+    long offset = uniqueDayOffset();
+    LocalDate firstDate = LocalDate.now().plusDays(offset);
+    LocalDate secondDate = LocalDate.now().plusDays(offset + 1);
+    LocalDate thirdDate = LocalDate.now().plusDays(offset + 2);
+
+    service.createTermin(
+        CreateTerminRequestDTO.builder()
+            .date(firstDate)
+            .startTime(LocalTime.of(9, 0))
+            .endTime(LocalTime.of(10, 0))
+            .build());
+    service.createTermin(
+        CreateTerminRequestDTO.builder()
+            .date(secondDate)
+            .startTime(LocalTime.of(9, 0))
+            .endTime(LocalTime.of(10, 0))
+            .build());
+    service.createTermin(
+        CreateTerminRequestDTO.builder()
+            .date(thirdDate)
+            .startTime(LocalTime.of(9, 0))
+            .endTime(LocalTime.of(10, 0))
+            .build());
+
+    PagingResponseDTO<TerminDTO> firstPage =
+        service.getAllTermini(
+            TerminSearchRequestDTO.builder()
+                .page(1)
+                .size(2)
+                .sortField("date")
+                .direction(org.springframework.data.domain.Sort.Direction.ASC)
+                .build());
+
+    assertThat(firstPage.getData()).hasSize(2);
+    assertThat(firstPage.getPage()).isEqualTo(1);
+    assertThat(firstPage.getTotalElements()).isGreaterThanOrEqualTo(3L);
+  }
+
+  @Test
+  void givenDateFilter_whenGetAllTermini_thenReturnsOnlyMatchingDateTermini() {
+    long offset = uniqueDayOffset();
+    LocalDate targetDate = LocalDate.now().plusDays(offset);
+    LocalDate otherDate = LocalDate.now().plusDays(offset + 1);
+
+    TerminDTO matchingTermin =
+        service.createTermin(
+            CreateTerminRequestDTO.builder()
+                .date(targetDate)
+                .startTime(LocalTime.of(9, 0))
+                .endTime(LocalTime.of(10, 0))
+                .build());
+    TerminDTO otherTermin =
+        service.createTermin(
+            CreateTerminRequestDTO.builder()
+                .date(otherDate)
+                .startTime(LocalTime.of(9, 0))
+                .endTime(LocalTime.of(10, 0))
+                .build());
+
+    PagingResponseDTO<TerminDTO> filtered =
+        service.getAllTermini(TerminSearchRequestDTO.builder().size(100).date(targetDate).build());
+
+    assertThat(filtered.getData()).extracting(TerminDTO::getId).contains(matchingTermin.getId());
+    assertThat(filtered.getData()).extracting(TerminDTO::getId).doesNotContain(otherTermin.getId());
   }
 
   @Test
