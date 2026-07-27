@@ -27,8 +27,8 @@ FitmeF (sibling repo) has no Maven integration — its build output must be copi
 
 ```bash
 cd ../FitmeF
-npm install        # if node_modules isn't already there
-npm run build      # tsc -b && vite build -> outputs to FitmeF/dist/
+npm install
+npm run build
 
 cd ../FitMeB
 mkdir -p src/main/resources/static
@@ -83,7 +83,7 @@ JWT_COOKIE_SAME_SITE=
 ```bash
 cd ~/FitMeB
 docker compose -f docker-compose.prod.yml up -d --build
-docker compose -f docker-compose.prod.yml logs -f app   # check Flyway migrations run clean
+docker compose -f docker-compose.prod.yml logs -f app
 ```
 
 `docker-compose.prod.yml` runs two services: `app` (built from `Dockerfile`) and `postgres` (image `postgres:16-alpine`, no host port published — only reachable from `app` over the internal `fitme-net` network).
