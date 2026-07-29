@@ -169,29 +169,25 @@ Proširuje `BaseAuditableEntity`. Validacija preklapanja: isti princip kao kod `
 
 - Novi `TerminTemplate` (npr. sreda 11-12h) generiše redove **samo** za sebe (`templateId` filter) — ne dira postojeće šablone/redove.
 
-## 8. Notifikacije (WhatsApp + SMS)
+## 8. Notifikacije (email, preko Brevo)
 
-### 8.1 SMS verifikacija broja telefona
+**2026-07-29 (odluka korisnika): WhatsApp/SMS preko Infobip uklonjen, notifikacije idu preko email-a.** Trenutno stanje:
 
-- Provajder: **Infobip** (preporuka — pokriva RS brojeve lokalno, isti provajder može i SMS i WhatsApp Business API u jednom ugovoru/SDK-u).
-- Flow: korisnik unosi broj telefona pri registraciji → SMS OTP (6 cifara, važi 5 min) → unosi kod → `phoneVerified = true`.
-- Ovo **zamenjuje** email verifikaciju kao gejt za `ACTIVE` status (vidi §9).
+### 8.1 OTP verifikacija broja telefona (preko emaila)
 
-### 8.2 WhatsApp podsetnici (WhatsApp Business API, Infobip)
+- Flow nepromenjen u odnosu na originalni WhatsApp OTP (§8.1 stara verzija): korisnik unosi broj telefona pri registraciji, `POST /api/auth/phone/send-otp { phoneNumber }` generiše 6-cifreni kod (5 min važenje) — **ali se kod sada šalje na `user.email`** (preko `EmailService`, trenutno `LoggingEmailService` log-only stub), ne WhatsApp porukom na telefon. Ovim se posredno verifikuje i mejl (korisnik mora imati pristup svom inbox-u) i telefon (broj mora biti tačan da bi lookup uspeo).
+- `POST /api/auth/phone/verify-otp { phoneNumber, code }` → `phoneVerified = true`, `INACTIVE → ACTIVE`.
+- Ovo **zamenjuje** email-link aktivaciju kao gejt za `ACTIVE` status (isto kao stara §9 odluka) — `ActivationTokenService`/`/api/auth/activate` ostaju u kodu kao neiskorišćen fallback, ne pozivaju se iz `AuthService.register`.
 
-- Trigger: za svaki novi `BOOKED` Appointment, zakazuju se **dva** podsetnika:
-  - **24h pre** `Termin.startTime` (datum + vreme termina).
-  - **1h pre** `Termin.startTime`.
-- Implementacija: scheduled job (npr. svakih 5-10 min) koji proverava Appointment-e čiji je reminder-prozor "sada" i šalje WhatsApp poruku preko Infobip API-ja na `user.phoneNumber`.
-- Na cancel/reschedule appointmenta, zakazani-a-još-neposlat-i reminder se mora poništiti (da se ne pošalje podsetnik za otkazan termin).
-- Potreban novi entitet ili flag za praćenje "da li je reminder X već poslat za Appointment Y" (da scheduled job ne šalje duplo) — npr. `AppointmentReminder` tabela (appointmentId, type [DAY_BEFORE/HOUR_BEFORE], sentAt).
+### 8.2 Podsetnici (preko emaila)
 
-## 9. Izmena Modula 1 — ukidanje email verifikacije
+- Nepromenjeno u odnosu na originalni plan: 24h i 1h pre `Termin.startTime`, `AppointmentReminder` tabela (appointmentId, type, scheduledAt, sentAt) prati da li je reminder već poslat. Slanje ide preko `EmailService` na `user.email` umesto WhatsApp-a na `user.phoneNumber`.
 
-- Email se i dalje čuva i mora biti **unique** (postojeći constraint ostaje), ali se **ne verifikuje** (ne šalje se aktivacioni link).
-- `phoneNumber` postaje **obavezno polje** pri registraciji (trenutno opciono).
-- Aktivacija naloga (`INACTIVE → ACTIVE`) ide isključivo kroz SMS verifikaciju telefona (§8.1) ili admin ručno (postojeći fallback iz §4.1 ostaje).
-- `ActivationTokenService`/email-link flow iz postojećeg Modula 1 se gasi (ili ostaje neaktivan u kodu radi minimalnog rizika — odluka za review sa Claude Code u toku implementacije).
+### 8.3 Buduć rad
+
+- Prava email integracija preko **Brevo** — zamena za `LoggingEmailService` (koristi se i za OTP i za podsetnike). Detaljna spec za Brevo integraciju nije još napisana; napisati je pre implementacije.
+
+## 9. (uklonjeno — vidi §8 iznad)
 
 ## 10. Trajanje članarine — 35 dana od prvog termina
 

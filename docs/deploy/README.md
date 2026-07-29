@@ -62,10 +62,6 @@ POSTGRES_USER=fitme
 POSTGRES_PASSWORD=<new strong password>
 SECRET_KEY=<new secret, NOT the dev one>
 CORS_ALLOWED_ORIGINS=
-WHATSAPP_PROVIDER=
-INFOBIP_API_KEY=
-INFOBIP_BASE_URL=
-INFOBIP_WHATSAPP_SENDER=
 
 # Leave both unset (defaults true/None) once HTTPS (step 6) is live.
 # Only while smoke-testing over plain http://91.98.235.42:8080 before that,

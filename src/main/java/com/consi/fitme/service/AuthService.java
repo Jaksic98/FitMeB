@@ -102,18 +102,7 @@ public class AuthService {
             .roles(List.of())
             .build();
 
-    UserDTO createdUser = userService.createUser(createUserRequestDTO);
-
-    // SMS OTP verifikacija zamenjuje email verifikaciju (Modul 9, SPEC.md §8.1/§9).
-    // Aktivacioni token će biti uklonjen kada se SMS flow implementira.
-    // String activationToken = activationTokenService.generateToken(createdUser.getEmail());
-    // logger.info(
-    //     "Aktivacioni link za korisnika {}: {}/api/auth/activate?token={}",
-    //     createdUser.getEmail(),
-    //     "<frontend-base-url>",
-    //     activationToken);
-
-    return createdUser;
+      return userService.createUser(createUserRequestDTO);
   }
 
   @Transactional

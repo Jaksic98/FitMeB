@@ -14,6 +14,8 @@ import com.consi.fitme.model.Status;
 import com.consi.fitme.model.entity.User;
 import com.consi.fitme.repository.UserRepository;
 import java.time.LocalDateTime;
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,7 +37,7 @@ class PhoneVerificationServiceIT {
   @Autowired private UserRepository userRepository;
   @Autowired private PasswordEncoder passwordEncoder;
 
-  @MockitoBean private WhatsAppSender whatsAppSender;
+  @MockitoBean private EmailService emailService;
 
   @Test
   void givenInactiveUser_whenSendOtp_thenSetsOtpHashAndExpiresAtAndSendsTemplate() {
@@ -60,14 +62,13 @@ class PhoneVerificationServiceIT {
     assertThat(user.getOtpExpiresAt()).isNotNull();
 
     ArgumentCaptor<String> templateNameCaptor = ArgumentCaptor.forClass(String.class);
-    ArgumentCaptor<java.util.List> placeholdersCaptor =
-        ArgumentCaptor.forClass(java.util.List.class);
-    verify(whatsAppSender)
-        .sendTemplate(eq(phoneNumber), templateNameCaptor.capture(), placeholdersCaptor.capture());
+    ArgumentCaptor<List<String>> placeholdersCaptor = ArgumentCaptor.captor();
+    verify(emailService)
+        .sendTemplate(eq(email), templateNameCaptor.capture(), placeholdersCaptor.capture());
 
     assertThat(templateNameCaptor.getValue()).isEqualTo("fitme_otp");
     assertThat(placeholdersCaptor.getValue()).hasSize(1);
-    String code = (String) placeholdersCaptor.getValue().get(0);
+    String code = placeholdersCaptor.getValue().getFirst();
     assertThat(code).matches("\\d{6}");
     assertThat(passwordEncoder.matches(code, user.getOtpHash())).isTrue();
   }
@@ -88,14 +89,10 @@ class PhoneVerificationServiceIT {
             .build());
 
     phoneVerificationService.sendOtp(phoneNumber);
-    User userAfterSend =
-        userRepository.findByPhoneNumberAndStatusNot(phoneNumber, Status.DELETED).orElseThrow();
-    String otpHash = userAfterSend.getOtpHash();
 
-    ArgumentCaptor<java.util.List> placeholdersCaptor =
-        ArgumentCaptor.forClass(java.util.List.class);
-    verify(whatsAppSender).sendTemplate(eq(phoneNumber), any(), placeholdersCaptor.capture());
-    String code = (String) placeholdersCaptor.getValue().get(0);
+    ArgumentCaptor<List<String>> placeholdersCaptor = ArgumentCaptor.captor();
+    verify(emailService).sendTemplate(eq(email), any(), placeholdersCaptor.capture());
+    String code = placeholdersCaptor.getValue().getFirst();
 
     phoneVerificationService.verifyOtp(phoneNumber, code);
 
@@ -182,7 +179,7 @@ class PhoneVerificationServiceIT {
 
     phoneVerificationService.sendOtp(nonexistentPhoneNumber);
 
-    verify(whatsAppSender, never()).sendTemplate(any(), any(), any());
+    verify(emailService, never()).sendTemplate(any(), any(), any());
   }
 
   @Test
@@ -208,6 +205,6 @@ class PhoneVerificationServiceIT {
 
     phoneVerificationService.sendOtp(phoneNumber);
 
-    verify(whatsAppSender, never()).sendTemplate(any(), any(), any());
+    verify(emailService, never()).sendTemplate(any(), any(), any());
   }
 }

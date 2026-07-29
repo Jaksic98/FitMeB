@@ -45,7 +45,7 @@ class AppointmentReminderServiceIT {
   @Autowired private PilatesService pilatesService;
   @Autowired private UserService userService;
 
-  @MockitoBean private WhatsAppSender whatsAppSender;
+  @MockitoBean private EmailService emailService;
 
   private Long bookedAppointmentId;
 
@@ -107,8 +107,8 @@ class AppointmentReminderServiceIT {
   }
 
   @Test
-  void givenDueUnsentReminder_whenSendDueReminders_thenSendsWhatsAppTemplateAndMarksSent() {
-    String phoneNumber = bookAppointmentForReminderTest();
+  void givenDueUnsentReminder_whenSendDueReminders_thenSendsEmailTemplateAndMarksSent() {
+    String email = bookAppointmentForReminderTest();
     AppointmentReminder due =
         reminderRepository.save(
             AppointmentReminder.builder()
@@ -119,7 +119,7 @@ class AppointmentReminderServiceIT {
 
     service.sendDueReminders();
 
-    verify(whatsAppSender).sendTemplate(eq(phoneNumber), eq("fitme_reminder"), any());
+    verify(emailService).sendTemplate(eq(email), eq("fitme_reminder"), any());
     assertThat(reminderRepository.findById(due.getId()).orElseThrow().getSentAt()).isNotNull();
   }
 
@@ -136,7 +136,7 @@ class AppointmentReminderServiceIT {
 
     service.sendDueReminders();
 
-    verify(whatsAppSender, never()).sendTemplate(any(), any(), any());
+    verify(emailService, never()).sendTemplate(any(), any(), any());
     assertThat(reminderRepository.findById(notDue.getId()).orElseThrow().getSentAt()).isNull();
   }
 
@@ -154,21 +154,21 @@ class AppointmentReminderServiceIT {
 
     service.sendDueReminders();
 
-    verify(whatsAppSender, never()).sendTemplate(any(), any(), any());
+    verify(emailService, never()).sendTemplate(any(), any(), any());
   }
 
   private String bookAppointmentForReminderTest() {
     String seed = seed();
     Long appointmentId =
         createAppointment(farFutureDate(), LocalTime.of(9, 0), LocalTime.of(10, 0));
-    String phoneNumber = "+3817" + seed;
+    String email = "itest.reminder." + seed + "@fitme.com";
     UserDTO client =
         userService.createUser(
             CreateUserRequestDTO.builder()
                 .username("itest.reminder." + seed)
                 .fullName("Reminder Test Client")
-                .email("itest.reminder." + seed + "@fitme.com")
-                .phoneNumber(phoneNumber)
+                .email(email)
+                .phoneNumber("+3817" + seed)
                 .password("itest.reminder.fitme123!")
                 .build());
     userService.updateUser(
@@ -180,7 +180,7 @@ class AppointmentReminderServiceIT {
     appointmentRepository.save(appointment);
 
     bookedAppointmentId = appointmentId;
-    return phoneNumber;
+    return email;
   }
 
   private Long createAppointment(LocalDate date, LocalTime startTime, LocalTime endTime) {

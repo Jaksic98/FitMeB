@@ -32,9 +32,9 @@ public class AppointmentReminderService {
   private final TerminRepository terminRepository;
   private final PilatesRepository pilatesRepository;
   private final UserRepository userRepository;
-  private final WhatsAppSender whatsAppSender;
+  private final EmailService emailService;
 
-  @Value("${whatsapp.templates.reminder:fitme_reminder}")
+  @Value("${email.templates.reminder:fitme_reminder}")
   private String reminderTemplateName;
 
   @Transactional
@@ -73,8 +73,8 @@ public class AppointmentReminderService {
     Pilates pilates = pilatesRepository.findById(appointment.getPilatesId()).orElseThrow();
 
     try {
-      whatsAppSender.sendTemplate(
-          user.getPhoneNumber(),
+      emailService.sendTemplate(
+          user.getEmail(),
           reminderTemplateName,
           List.of(
               pilates.getName(), termin.getDate().toString(), termin.getStartTime().toString()));

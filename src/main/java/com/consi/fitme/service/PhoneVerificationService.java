@@ -30,9 +30,9 @@ public class PhoneVerificationService {
 
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
-  private final WhatsAppSender whatsAppSender;
+  private final EmailService emailService;
 
-  @Value("${whatsapp.templates.otp:fitme_otp}")
+  @Value("${email.templates.otp:fitme_otp}")
   private String otpTemplateName;
 
   @Transactional
@@ -65,7 +65,7 @@ public class PhoneVerificationService {
     userRepository.save(user);
 
     try {
-      whatsAppSender.sendTemplate(phoneNumber, otpTemplateName, List.of(code));
+      emailService.sendTemplate(user.getEmail(), otpTemplateName, List.of(code));
     } catch (Exception ex) {
       logger.error(
           "Greška pri slanju OTP koda: phoneNumber={}, error={}", phoneNumber, ex.getMessage(), ex);
