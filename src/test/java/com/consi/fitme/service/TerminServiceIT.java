@@ -339,8 +339,7 @@ class TerminServiceIT {
   }
 
   @Test
-  void
-      givenDateAndStartTimeFilter_whenGetAllTermini_thenReturnsOnlyMatchingBothDateAndStartTime() {
+  void givenDateAndStartTimeFilter_whenGetAllTermini_thenReturnsOnlyMatchingBothDateAndStartTime() {
     long offset = uniqueDayOffset();
     LocalDate date = LocalDate.now().plusDays(offset);
 

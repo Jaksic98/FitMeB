@@ -46,8 +46,9 @@ public class TerminService {
     LocalTime startTime = searchRequest.getStartTime();
     Page<Termin> page;
     if (date != null && startTime != null) {
-      page = repository.findAllByStatusNotAndDateAndStartTime(
-          Status.DELETED, date, startTime, pageable);
+      page =
+          repository.findAllByStatusNotAndDateAndStartTime(
+              Status.DELETED, date, startTime, pageable);
     } else if (date != null) {
       page = repository.findAllByStatusNotAndDate(Status.DELETED, date, pageable);
     } else if (startTime != null) {
@@ -171,7 +172,7 @@ public class TerminService {
       LocalDate date, LocalTime startTime, LocalTime endTime, Long currentTerminId) {
     boolean overlaps =
         repository.findByDateAndStatus(date, Status.ACTIVE).stream()
-            .filter(other -> currentTerminId == null || !other.getId().equals(currentTerminId))
+            .filter(other -> !other.getId().equals(currentTerminId))
             .anyMatch(
                 other ->
                     startTime.isBefore(other.getEndTime())

@@ -14,13 +14,12 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface TerminRepository extends JpaRepository<Termin, Long> {
 
-  List<Termin> findAllByStatusNot(Status status);
-
   Page<Termin> findAllByStatusNot(Status status, Pageable pageable);
 
   Page<Termin> findAllByStatusNotAndDate(Status status, LocalDate date, Pageable pageable);
 
-  Page<Termin> findAllByStatusNotAndStartTime(Status status, LocalTime startTime, Pageable pageable);
+  Page<Termin> findAllByStatusNotAndStartTime(
+      Status status, LocalTime startTime, Pageable pageable);
 
   Page<Termin> findAllByStatusNotAndDateAndStartTime(
       Status status, LocalDate date, LocalTime startTime, Pageable pageable);
