@@ -48,6 +48,7 @@ public class AuthService {
   public void login(String email, String password, HttpServletResponse response) {
     Optional<User> foundUser = userRepository.findByEmailAndStatusNot(email, Status.DELETED);
     if (foundUser.isPresent() && foundUser.get().getStatus() == Status.LOCKED) {
+      logger.warn("Login rejected, account locked: email={}", email);
       throw new LoginFailedException("Neispravno korisničko ime ili lozinka");
     }
 
@@ -62,10 +63,14 @@ public class AuthService {
       }
       String jwt = jwtService.generateToken(user);
       response.addCookie(jwtService.generateCookie(jwt));
+      logger.info("Login successful: email={}", email);
     } catch (BadCredentialsException ex) {
       foundUser.ifPresent(this::incrementFailedAttemptsAndLockIfNeeded);
+      logger.warn("Login failed, bad credentials: email={}", email);
       throw new LoginFailedException("Neispravno korisničko ime ili lozinka");
     } catch (AuthenticationException ex) {
+      logger.warn(
+          "Login failed, authentication error: email={}, reason={}", email, ex.getMessage());
       throw new LoginFailedException("Autentikacija nije uspela: " + ex.getMessage());
     }
   }
@@ -81,6 +86,7 @@ public class AuthService {
       }
 
       response.addCookie(createExpiredCookie(jwtService.getCookieName()));
+      logger.info("Logout successful");
     } else {
       throw new MissingJwtTokenException();
     }
@@ -102,7 +108,9 @@ public class AuthService {
             .roles(List.of())
             .build();
 
-    return userService.createUser(createUserRequestDTO);
+    UserDTO createdUser = userService.createUser(createUserRequestDTO);
+    logger.info("User registered: email={}", registerRequestDTO.getEmail());
+    return createdUser;
   }
 
   @Transactional
@@ -120,6 +128,7 @@ public class AuthService {
     user.setStatus(Status.ACTIVE);
     user.setFailedLoginAttempts(0);
     userRepository.save(user);
+    logger.info("Account activated: email={}", email);
   }
 
   public void validateSession(HttpServletRequest request) {
@@ -202,6 +211,10 @@ public class AuthService {
 
     if (failedAttempts >= MAX_FAILED_LOGIN_ATTEMPTS) {
       user.setStatus(Status.LOCKED);
+      logger.warn(
+          "Account locked after {} failed login attempts: email={}",
+          failedAttempts,
+          user.getEmail());
     }
 
     userRepository.save(user);
