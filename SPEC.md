@@ -175,17 +175,24 @@ Proširuje `BaseAuditableEntity`. Validacija preklapanja: isti princip kao kod `
 
 ### 8.1 OTP verifikacija broja telefona (preko emaila)
 
-- Flow nepromenjen u odnosu na originalni WhatsApp OTP (§8.1 stara verzija): korisnik unosi broj telefona pri registraciji, `POST /api/auth/phone/send-otp { phoneNumber }` generiše 6-cifreni kod (5 min važenje) — **ali se kod sada šalje na `user.email`** (preko `EmailService`, trenutno `LoggingEmailService` log-only stub), ne WhatsApp porukom na telefon. Ovim se posredno verifikuje i mejl (korisnik mora imati pristup svom inbox-u) i telefon (broj mora biti tačan da bi lookup uspeo).
+- Flow nepromenjen u odnosu na originalni WhatsApp OTP (§8.1 stara verzija): korisnik unosi broj telefona pri registraciji, `POST /api/auth/phone/send-otp { phoneNumber }` generiše 6-cifreni kod (5 min važenje) — **ali se kod sada šalje na `user.email`** (preko `EmailService` → `BrevoEmailService`, template `fitme_otp`), ne WhatsApp porukom na telefon. Ovim se posredno verifikuje i mejl (korisnik mora imati pristup svom inbox-u) i telefon (broj mora biti tačan da bi lookup uspeo).
 - `POST /api/auth/phone/verify-otp { phoneNumber, code }` → `phoneVerified = true`, `INACTIVE → ACTIVE`.
 - Ovo **zamenjuje** email-link aktivaciju kao gejt za `ACTIVE` status (isto kao stara §9 odluka) — `ActivationTokenService`/`/api/auth/activate` ostaju u kodu kao neiskorišćen fallback, ne pozivaju se iz `AuthService.register`.
 
 ### 8.2 Podsetnici (preko emaila)
 
-- Nepromenjeno u odnosu na originalni plan: 24h i 1h pre `Termin.startTime`, `AppointmentReminder` tabela (appointmentId, type, scheduledAt, sentAt) prati da li je reminder već poslat. Slanje ide preko `EmailService` na `user.email` umesto WhatsApp-a na `user.phoneNumber`.
+- Nepromenjeno u odnosu na originalni plan: 24h i 1h pre `Termin.startTime`, `AppointmentReminder` tabela (appointmentId, type, scheduledAt, sentAt) prati da li je reminder već poslat. Slanje ide preko `EmailService` → `BrevoEmailService` (template `fitme_reminder`) na `user.email` umesto WhatsApp-a na `user.phoneNumber`.
 
-### 8.3 Buduć rad
+### 8.3 Brevo integracija (implementirano 2026-07-29)
 
-- Prava email integracija preko **Brevo** — zamena za `LoggingEmailService` (koristi se i za OTP i za podsetnike). Detaljna spec za Brevo integraciju nije još napisana; napisati je pre implementacije.
+- `BrevoEmailClient` šalje `POST https://api.brevo.com/v3/smtp/email` (autentikacija preko `api-key` header-a; konfiguracija `brevo.api-key`/`brevo.sender.email`/`brevo.sender.name` ← env `BREVO_API_KEY`/`BREVO_SENDER_EMAIL`/`BREVO_SENDER_NAME`, ništa hardkodovano).
+- `BrevoEmailService.sendTemplate` učitava HTML fajlove iz `src/main/resources/email-templates/{templateName}.html` (folder po odluci korisnika, ne inline HTML ni Brevo dashboard template ID-jevi) i zamenjuje pozicione placeholder-e `{{0}}`, `{{1}}`, ... vrednostima iz `List<String> placeholders`.
+- Greške iz Brevo API-ja se umotavaju u `EmailSendException` (unchecked `RuntimeException`, bez `ErrorCode`-a jer se uvek hvata interno kod pozivaoca — nikad ne stiže do `GlobalExceptionHandler`/klijenta).
+
+### 8.4 Newsletter (implementirano 2026-07-29)
+
+- `EmailService.sendRaw(toEmail, subject, htmlContent)` — dodatna metoda za ad-hoc sadržaj koji admin unosi ručno, bez lokalnog template fajla.
+- `POST /api/newsletter/send` (`NewsletterController`, ADMIN-only) prima `{ subject, htmlContent }` (`SendNewsletterRequestDTO`), `NewsletterService.sendNewsletter` šalje svim `ACTIVE` korisnicima sa `emailNotifications=true` preko istog transakcionog `/smtp/email` poziva (nema Brevo Campaigns/kontakt liste integracije — odluka korisnika). Slanje po korisniku je izolovano try/catch-om; jedan neuspeh ne prekida batch. Odgovor `NewsletterSendResultDTO { totalRecipients, sentCount, failedCount }`.
 
 ## 9. (uklonjeno — vidi §8 iznad)
 

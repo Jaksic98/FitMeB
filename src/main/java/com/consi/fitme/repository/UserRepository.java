@@ -21,6 +21,8 @@ public interface UserRepository extends JpaRepository<User, Long>, UserQueryRepo
 
   Optional<User> findByPhoneNumberAndStatusNot(String phoneNumber, Status status);
 
+  List<User> findByStatusAndEmailNotifications(Status status, Boolean emailNotifications);
+
   @Query(
       value =
           """

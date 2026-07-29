@@ -102,7 +102,7 @@ public class AuthService {
             .roles(List.of())
             .build();
 
-      return userService.createUser(createUserRequestDTO);
+    return userService.createUser(createUserRequestDTO);
   }
 
   @Transactional

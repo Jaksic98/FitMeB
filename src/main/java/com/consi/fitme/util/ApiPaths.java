@@ -11,4 +11,5 @@ public final class ApiPaths {
   public static final String TERMINI = API_PREFIX + "/termini";
   public static final String TERMIN_TEMPLATES = API_PREFIX + "/termin-templates";
   public static final String APPOINTMENTS = API_PREFIX + "/appointments";
+  public static final String NEWSLETTER = API_PREFIX + "/newsletter";
 }

@@ -63,6 +63,11 @@ POSTGRES_PASSWORD=<new strong password>
 SECRET_KEY=<new secret, NOT the dev one>
 CORS_ALLOWED_ORIGINS=
 
+# Brevo (transactional email - OTP, reminders, newsletter)
+BREVO_API_KEY=<real Brevo API key>
+BREVO_SENDER_EMAIL=noreply@pilates.fitme.rs
+BREVO_SENDER_NAME=FitMe Pilates
+
 # Leave both unset (defaults true/None) once HTTPS (step 6) is live.
 # Only while smoke-testing over plain http://91.98.235.42:8080 before that,
 # temporarily set JWT_COOKIE_SECURE=false and JWT_COOKIE_SAME_SITE=Lax —

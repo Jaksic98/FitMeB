@@ -44,3 +44,9 @@ email:
   templates:
     otp: fitme_otp
     reminder: fitme_reminder
+
+brevo:
+  api-key: ${BREVO_API_KEY:}
+  sender:
+    email: ${BREVO_SENDER_EMAIL:noreply@pilates.fitme.rs}
+    name: ${BREVO_SENDER_NAME:FitMe Pilates}
