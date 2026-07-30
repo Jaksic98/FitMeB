@@ -68,16 +68,20 @@ BREVO_API_KEY=<real Brevo API key>
 BREVO_SENDER_EMAIL=noreply@pilates.fitme.rs
 BREVO_SENDER_NAME=FitMe Pilates
 
-# Leave both unset (defaults true/None) once HTTPS (step 6) is live.
+# Leave both blank once HTTPS (step 6) is live — docker-compose.prod.yml
+# falls back to JWT_COOKIE_SECURE=true / JWT_COOKIE_SAME_SITE=None when these
+# are blank/unset in .env, which is what you want behind HTTPS.
 # Only while smoke-testing over plain http://91.98.235.42:8080 before that,
 # temporarily set JWT_COOKIE_SECURE=false and JWT_COOKIE_SAME_SITE=Lax —
 # browsers silently drop Secure cookies sent over plain HTTP, so login
-# won't persist otherwise. Revert both once Caddy/HTTPS is up.
+# won't persist otherwise. Revert both (back to blank) once Caddy/HTTPS is up.
 JWT_COOKIE_SECURE=
 JWT_COOKIE_SAME_SITE=
 ```
 
-`CORS_ALLOWED_ORIGINS` doesn't matter much in this deployment shape — the SPA and API share an origin (same jar, `FrontendConfig` forwards SPA routes), so no cross-origin request ever happens in production. It only matters for the local Vite dev server.
+`CORS_ALLOWED_ORIGINS` doesn't matter much in this deployment shape — the SPA and API share an origin (same jar, `FrontendConfig` forwards SPA routes), so no cross-origin request ever happens in production. It only matters for the local Vite dev server. Same blank-is-safe rule applies: `docker-compose.prod.yml` falls back to the dev/ngrok/prod origin list when it's blank/unset.
+
+> **Note:** an earlier version of `docker-compose.prod.yml` passed `JWT_COOKIE_SECURE`/`JWT_COOKIE_SAME_SITE`/`CORS_ALLOWED_ORIGINS` straight through from the host env without a fallback. When `.env` left them blank (as instructed above), Compose still set the container env var to a literal empty string — which is *present but empty*, not unset — so Spring's own `${JWT_COOKIE_SECURE:true}` default in `application.yaml` never kicked in, and boot failed trying to bind `""` to a boolean. Fixed by adding `:-true`/`:-None`/`:-<origins>` defaults directly in `docker-compose.prod.yml`'s `environment:` block.
 
 ### 5. Bring it up
 
