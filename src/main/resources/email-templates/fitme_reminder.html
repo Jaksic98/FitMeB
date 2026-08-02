@@ -10,20 +10,15 @@
 <tr><td align="center">
 <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="width:480px;max-width:100%;background:#ffffff;border:1px solid #E7E3DD;border-radius:20px;overflow:hidden;">
 
-  <tr><td style="padding:28px 36px;border-bottom:1px solid #E8E4DE;">
-    <table role="presentation" cellpadding="0" cellspacing="0"><tr>
-      <td style="width:26px;height:26px;background:#E11414;border-radius:6px;font-size:0;line-height:0;">&nbsp;</td>
-      <td style="padding-left:9px;font-size:19px;font-weight:900;color:#121110;letter-spacing:-0.02em;">FitMe</td>
-    </tr></table>
+  <tr><td style="padding:20px 36px;border-bottom:1px solid #E8E4DE;">
+    <img src="https://pilates.fitme.rs/assets/img/logo_color.png" alt="FitMe" width="32" height="32" style="display:block;border:0;">
   </td></tr>
 
   <tr><td style="padding:40px 36px 8px;text-align:center;">
     <div style="width:62px;height:62px;border-radius:16px;background:#FBEAEA;margin:0 auto 22px;text-align:center;line-height:62px;font-size:26px;">⏰</div>
-    <!-- {{REMINDER_LABEL}}: "ZA 24 SATA" ili "ZA 1 SAT" -->
-    <div style="font-size:12px;font-weight:700;letter-spacing:0.18em;color:#E11414;font-family:'Courier New',monospace;margin-bottom:10px;text-transform:uppercase;">Podsetnik · {{REMINDER_LABEL}}</div>
-    <!-- {{FIRST_NAME}} -->
-    <h1 style="font-size:24px;font-weight:800;letter-spacing:-0.02em;color:#121110;margin:0 0 14px;">Vidimo se uskoro, {{FIRST_NAME}}!</h1>
-    <p style="font-size:15px;line-height:1.6;color:#6F6B66;margin:0 0 28px;">Vaš termin počinje za <b style="color:#121110;">{{REMINDER_LABEL_LOWER}}</b>. Evo detalja:</p>
+    <div style="font-size:12px;font-weight:700;letter-spacing:0.18em;color:#E11414;font-family:'Courier New',monospace;margin-bottom:10px;text-transform:uppercase;">Podsetnik za termin</div>
+    <h1 style="font-size:24px;font-weight:800;letter-spacing:-0.02em;color:#121110;margin:0 0 14px;">Vidimo se uskoro!</h1>
+    <p style="font-size:15px;line-height:1.6;color:#6F6B66;margin:0 0 28px;">Vaš termin je zakazan. Evo detalja:</p>
   </td></tr>
 
   <!-- detalji termina -->
@@ -33,7 +28,7 @@
         <td style="padding:20px 22px;border-bottom:1px solid #E7E3DD;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
             <td style="font-size:13px;color:#9C968F;">Datum i vreme</td>
-            <td align="right" style="font-size:15px;font-weight:700;color:#121110;">{{DATE}} · {{TIME}}</td>
+            <td align="right" style="font-size:15px;font-weight:700;color:#121110;">{{1}} · {{2}}</td>
           </tr></table>
         </td>
       </tr>
@@ -41,15 +36,7 @@
         <td style="padding:16px 22px;border-bottom:1px solid #E7E3DD;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
             <td style="font-size:13px;color:#9C968F;">Sprava</td>
-            <td align="right" style="font-size:15px;font-weight:700;color:#121110;">{{MACHINE_NAME}}</td>
-          </tr></table>
-        </td>
-      </tr>
-      <tr>
-        <td style="padding:16px 22px;border-bottom:1px solid #E7E3DD;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-            <td style="font-size:13px;color:#9C968F;">Instruktor</td>
-            <td align="right" style="font-size:15px;font-weight:700;color:#121110;">{{INSTRUCTOR_NAME}}</td>
+            <td align="right" style="font-size:15px;font-weight:700;color:#121110;">{{0}}</td>
           </tr></table>
         </td>
       </tr>
@@ -68,10 +55,10 @@
   <tr><td style="padding:28px 36px 8px;text-align:center;">
     <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;"><tr>
       <td style="padding:0 6px;">
-        <a href="{{MY_APPOINTMENTS_URL}}" style="display:inline-block;background:#E11414;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;padding:14px 26px;border-radius:11px;">Moji termini</a>
+        <a href="#" style="display:inline-block;background:#E11414;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;padding:14px 26px;border-radius:11px;">Moji termini</a>
       </td>
       <td style="padding:0 6px;">
-        <a href="{{CANCEL_URL}}" style="display:inline-block;background:#ffffff;border:1px solid #E7E3DD;color:#121110;font-size:15px;font-weight:700;text-decoration:none;padding:13px 26px;border-radius:11px;">Otkaži termin</a>
+        <a href="#" style="display:inline-block;background:#ffffff;border:1px solid #E7E3DD;color:#121110;font-size:15px;font-weight:700;text-decoration:none;padding:13px 26px;border-radius:11px;">Otkaži termin</a>
       </td>
     </tr></table>
   </td></tr>
@@ -81,7 +68,7 @@
   </td></tr>
 
   <tr><td style="padding:20px 36px;border-top:1px solid #E8E4DE;text-align:center;">
-    <p style="font-family:'Courier New',monospace;font-size:11px;color:#9C968F;letter-spacing:0.04em;margin:0;">fitme.rs · Kedrova sauna &amp; Pilates</p>
+    <p style="font-family:'Courier New',monospace;font-size:11px;color:#9C968F;letter-spacing:0.04em;margin:0;">fitme.rs · EMS, Pilates &amp; Kedrova sauna</p>
   </td></tr>
 </table>
 </td></tr>

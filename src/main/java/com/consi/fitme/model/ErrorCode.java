@@ -80,7 +80,14 @@ public enum ErrorCode {
   OTP_RESEND_COOLDOWN(2902, "Sačekajte pre ponovnog slanja koda", HttpStatus.TOO_MANY_REQUESTS),
 
   // 3xxx – generic resources
-  RESOURCE_NOT_FOUND(3001, "Resurs nije pronađen", HttpStatus.NOT_FOUND);
+  RESOURCE_NOT_FOUND(3001, "Resurs nije pronađen", HttpStatus.NOT_FOUND),
+
+  // 31xx – newsletter template domain
+  NEWSLETTER_TEMPLATE_NOT_FOUND(3101, "Šablon newsletter-a nije pronađen", HttpStatus.NOT_FOUND),
+  NEWSLETTER_INVALID_CONTENT_SOURCE(
+      3102,
+      "Potrebno je izabrati šablon ili uneti HTML sadržaj, ali ne oba",
+      HttpStatus.BAD_REQUEST);
 
   private final int code;
   private final String message;

@@ -30,8 +30,7 @@ public class NewsletterController {
       HttpServletRequest request) {
     return ResponseEntity.ok(
         ResponseUtil.success(
-            service.sendNewsletter(
-                sendNewsletterRequestDTO.getSubject(), sendNewsletterRequestDTO.getHtmlContent()),
+            service.sendNewsletter(sendNewsletterRequestDTO),
             "Newsletter je uspešno poslat",
             request.getRequestURI()));
   }

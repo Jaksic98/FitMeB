@@ -19,6 +19,8 @@ public class SendNewsletterRequestDTO {
   @Size(max = 200, message = "Naslov može imati najviše 200 karaktera")
   private String subject;
 
-  @NotBlank(message = "Sadržaj je obavezan")
+  // Exactly one of templateId or htmlContent must be provided (enforced in NewsletterService).
+  private Long templateId;
+
   private String htmlContent;
 }

@@ -1,7 +1,6 @@
 package com.consi.fitme.controller;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -10,6 +9,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.consi.fitme.dto.NewsletterSendResultDTO;
+import com.consi.fitme.dto.request.SendNewsletterRequestDTO;
 import com.consi.fitme.service.NewsletterService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,7 +40,7 @@ class NewsletterControllerIT {
   @Test
   @WithMockUser(roles = "ADMIN")
   void givenAdmin_whenSendNewsletter_thenReturnsOk() throws Exception {
-    when(service.sendNewsletter(eq("Naslov"), eq("<p>Sadržaj</p>")))
+    when(service.sendNewsletter(any(SendNewsletterRequestDTO.class)))
         .thenReturn(
             NewsletterSendResultDTO.builder()
                 .totalRecipients(2)
@@ -78,7 +78,7 @@ class NewsletterControllerIT {
                     """))
         .andExpect(status().isBadRequest());
 
-    verify(service, never()).sendNewsletter(any(), any());
+    verify(service, never()).sendNewsletter(any(SendNewsletterRequestDTO.class));
   }
 
   @Test
@@ -97,6 +97,6 @@ class NewsletterControllerIT {
                     """))
         .andExpect(status().isForbidden());
 
-    verify(service, never()).sendNewsletter(any(), any());
+    verify(service, never()).sendNewsletter(any(SendNewsletterRequestDTO.class));
   }
 }
