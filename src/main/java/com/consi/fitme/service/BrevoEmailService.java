@@ -19,7 +19,9 @@ public class BrevoEmailService implements EmailService {
   private static final Map<String, String> SUBJECTS_BY_TEMPLATE =
       Map.of(
           "fitme_otp", "Vaš verifikacioni kod — FitMe",
-          "fitme_reminder", "Podsetnik za termin — FitMe");
+          "fitme_reminder", "Podsetnik za termin — FitMe",
+          "fitme_password_reset", "Reset lozinke — FitMe",
+          "fitme_password_changed", "Vaša lozinka je promenjena — FitMe");
 
   private final BrevoEmailClient brevoEmailClient;
 

@@ -1,13 +1,17 @@
 package com.consi.fitme.controller;
 
 import com.consi.fitme.dto.UserDTO;
+import com.consi.fitme.dto.request.ForgotPasswordRequestDTO;
 import com.consi.fitme.dto.request.LoginRequestDTO;
 import com.consi.fitme.dto.request.RegisterRequestDTO;
+import com.consi.fitme.dto.request.ResetPasswordRequestDTO;
 import com.consi.fitme.dto.request.SendOtpRequestDTO;
 import com.consi.fitme.dto.request.VerifyOtpRequestDTO;
 import com.consi.fitme.dto.response.MessageResponseDTO;
 import com.consi.fitme.dto.response.SuccessResponseDTO;
+import com.consi.fitme.exception.auth.ResetTokenCooldownException;
 import com.consi.fitme.service.AuthService;
+import com.consi.fitme.service.PasswordResetService;
 import com.consi.fitme.service.PhoneVerificationService;
 import com.consi.fitme.util.ResponseUtil;
 import jakarta.servlet.http.HttpServletRequest;
@@ -27,8 +31,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AuthController {
 
+  private static final String FORGOT_PASSWORD_MESSAGE =
+      "Ako nalog sa ovom email adresom postoji, poslat je link za reset lozinke";
+
   private final AuthService service;
   private final PhoneVerificationService phoneVerificationService;
+  private final PasswordResetService passwordResetService;
 
   @PostMapping("/login")
   public ResponseEntity<SuccessResponseDTO<MessageResponseDTO>> login(
@@ -92,6 +100,37 @@ public class AuthController {
         ResponseUtil.success(
             new MessageResponseDTO("Sesija je aktivna"),
             "Sesija je aktivna",
+            request.getRequestURI()));
+  }
+
+  @PostMapping("/forgot-password")
+  public ResponseEntity<SuccessResponseDTO<MessageResponseDTO>> forgotPassword(
+      @Valid @RequestBody ForgotPasswordRequestDTO forgotPasswordRequestDTO,
+      HttpServletRequest request) {
+
+    try {
+      passwordResetService.requestReset(forgotPasswordRequestDTO.getEmail());
+    } catch (ResetTokenCooldownException ex) {
+      // Swallowed to stay enumeration-safe: always return the same generic response.
+    }
+    return ResponseEntity.ok(
+        ResponseUtil.success(
+            new MessageResponseDTO(FORGOT_PASSWORD_MESSAGE),
+            FORGOT_PASSWORD_MESSAGE,
+            request.getRequestURI()));
+  }
+
+  @PostMapping("/reset-password")
+  public ResponseEntity<SuccessResponseDTO<MessageResponseDTO>> resetPassword(
+      @Valid @RequestBody ResetPasswordRequestDTO resetPasswordRequestDTO,
+      HttpServletRequest request) {
+
+    passwordResetService.resetPassword(
+        resetPasswordRequestDTO.getToken(), resetPasswordRequestDTO.getNewPassword());
+    return ResponseEntity.ok(
+        ResponseUtil.success(
+            new MessageResponseDTO("Lozinka je uspešno promenjena"),
+            "Lozinka je uspešno promenjena",
             request.getRequestURI()));
   }
 

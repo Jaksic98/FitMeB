@@ -26,6 +26,13 @@ public enum ErrorCode {
   INVALID_ACTIVATION_TOKEN(
       2104, "Token za aktivaciju nije ispravan ili je istekao", HttpStatus.BAD_REQUEST),
   PHONE_NUMBER_ALREADY_EXISTS(2105, "Broj telefona već postoji", HttpStatus.CONFLICT),
+  INVALID_RESET_TOKEN(
+      2106, "Link za reset lozinke nije ispravan ili je istekao", HttpStatus.BAD_REQUEST),
+  RESET_TOKEN_COOLDOWN(
+      2107, "Sačekajte pre ponovnog slanja linka za reset lozinke", HttpStatus.TOO_MANY_REQUESTS),
+  CURRENT_PASSWORD_MISMATCH(2108, "Trenutna lozinka nije ispravna", HttpStatus.BAD_REQUEST),
+  SAME_AS_OLD_PASSWORD(
+      2109, "Nova lozinka mora biti različita od trenutne", HttpStatus.BAD_REQUEST),
   TIP_PRAVNOG_LICA_NOT_FOUND(2201, "Tip pravnog lica nije pronađen", HttpStatus.NOT_FOUND),
   TIP_PRAVNOG_LICA_ALREADY_EXISTS(2202, "Tip pravnog lica već postoji", HttpStatus.CONFLICT),
   TIP_PRAVNOG_LICA_DELETE_BLOCKED(

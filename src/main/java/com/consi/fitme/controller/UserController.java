@@ -1,12 +1,14 @@
 package com.consi.fitme.controller;
 
 import com.consi.fitme.dto.UserDTO;
+import com.consi.fitme.dto.request.ChangePasswordRequestDTO;
 import com.consi.fitme.dto.request.CreateUserRequestDTO;
 import com.consi.fitme.dto.request.UpdateUserRequestDTO;
 import com.consi.fitme.dto.request.UserSearchRequestDTO;
 import com.consi.fitme.dto.response.MessageResponseDTO;
 import com.consi.fitme.dto.response.PagingResponseDTO;
 import com.consi.fitme.dto.response.SuccessResponseDTO;
+import com.consi.fitme.service.AuthService;
 import com.consi.fitme.service.UserService;
 import com.consi.fitme.util.ApiPaths;
 import com.consi.fitme.util.ResponseUtil;
@@ -31,6 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
 
   private final UserService service;
+  private final AuthService authService;
 
   @GetMapping
   @PreAuthorize("hasRole('ADMIN')")
@@ -74,6 +77,19 @@ public class UserController {
         ResponseUtil.success(
             service.updateUser(id, updateUserRequestDTO),
             "Korisnik je uspešno ažuriran",
+            request.getRequestURI()));
+  }
+
+  @PutMapping("/me/password")
+  public ResponseEntity<SuccessResponseDTO<MessageResponseDTO>> changePassword(
+      @Valid @RequestBody ChangePasswordRequestDTO changePasswordRequestDTO,
+      HttpServletRequest request) {
+    authService.changePassword(
+        changePasswordRequestDTO.getCurrentPassword(), changePasswordRequestDTO.getNewPassword());
+    return ResponseEntity.ok(
+        ResponseUtil.success(
+            new MessageResponseDTO("Lozinka je uspešno promenjena"),
+            "Lozinka je uspešno promenjena",
             request.getRequestURI()));
   }
 

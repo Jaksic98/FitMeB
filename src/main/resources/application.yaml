@@ -30,6 +30,9 @@ application:
   scheduling:
     termin-horizon-days: 90
 
+frontend:
+  base-url: ${FRONTEND_BASE_URL:https://pilates.fitme.rs}
+
 security:
   jwt:
     cookie-name: fitme_cookie
@@ -44,6 +47,8 @@ email:
   templates:
     otp: fitme_otp
     reminder: fitme_reminder
+    password-reset: fitme_password_reset
+    password-changed: fitme_password_changed
 
 brevo:
   api-key: ${BREVO_API_KEY:}

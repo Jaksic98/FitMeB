@@ -80,6 +80,15 @@ public class User implements UserDetails {
   @Column(name = "otp_expires_at")
   private LocalDateTime otpExpiresAt;
 
+  @Column(name = "password_reset_token_hash")
+  private String passwordResetTokenHash;
+
+  @Column(name = "password_reset_expires_at")
+  private LocalDateTime passwordResetExpiresAt;
+
+  @Column(name = "password_changed_at")
+  private LocalDateTime passwordChangedAt;
+
   @Transient private List<SimpleGrantedAuthority> grantedAuthorities;
 
   @Override

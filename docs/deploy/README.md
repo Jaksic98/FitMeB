@@ -26,18 +26,29 @@ Connect: `ssh fitme@91.98.235.42`
 FitmeF (sibling repo) has no Maven integration — its build output must be copied into `src/main/resources/static` by hand before packaging.
 
 ```bash
-cd ../FitmeF
+cd ../../../FitmeF
+```
+```bash
 npm install
+```
+```bash
 npm run build
+```
 
-cd ../FitMeB
+```bash
+cd ../../FitMe
+```
+```bash
 mkdir -p src/main/resources/static
-cp -r ../FitmeF/dist/. src/main/resources/static/
+```
+```bash
+cp -r ./FitmeF/dist/. src/main/resources/static/
 ```
 
 ### 2. Build the jar
 
 ```bash
+cd ./FitmeB
 ./mvnw clean package -DskipTests
 ```
 
@@ -47,6 +58,8 @@ Verify the frontend actually landed in the jar: `unzip -l target/fitme-*.jar | g
 
 ```bash
 ssh fitme@91.98.235.42 "mkdir -p ~/FitMeB"
+```
+```bash
 scp Dockerfile docker-compose.prod.yml target/fitme-*.jar fitme@91.98.235.42:~/FitMeB/
 ```
 
@@ -86,8 +99,12 @@ JWT_COOKIE_SAME_SITE=
 ### 5. Bring it up
 
 ```bash
-cd ~/FitMeB
+ssh fitme@91.98.235.42
+```
+```bash
 docker compose -f docker-compose.prod.yml up -d --build
+```
+```bash
 docker compose -f docker-compose.prod.yml logs -f app
 ```
 

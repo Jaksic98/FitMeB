@@ -19,6 +19,7 @@ import com.consi.fitme.dto.response.MessageResponseDTO;
 import com.consi.fitme.dto.response.PagingResponseDTO;
 import com.consi.fitme.model.Role;
 import com.consi.fitme.model.Status;
+import com.consi.fitme.service.AuthService;
 import com.consi.fitme.service.UserService;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,6 +41,7 @@ class UserControllerIT {
   @Autowired private WebApplicationContext webApplicationContext;
 
   @MockitoBean private UserService service;
+  @MockitoBean private AuthService authService;
 
   @BeforeEach
   void setUp() {
@@ -142,5 +144,62 @@ class UserControllerIT {
     verify(service, never()).createUser(any(CreateUserRequestDTO.class));
     verify(service, never()).updateUser(anyLong(), any(UpdateUserRequestDTO.class));
     verify(service, never()).deleteUser(anyLong());
+  }
+
+  @Test
+  @WithMockUser(roles = "CLIENT")
+  void givenAuthenticatedUser_whenChangePassword_thenReturnsOk() throws Exception {
+    mockMvc
+        .perform(
+            put("/api/users/me/password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "currentPassword": "itest.changepw.old123!",
+                      "newPassword": "itest.changepw.new456!",
+                      "confirmNewPassword": "itest.changepw.new456!"
+                    }
+                    """))
+        .andExpect(status().isOk());
+  }
+
+  @Test
+  void givenUnauthenticatedUser_whenChangePassword_thenReturnsUnauthorized() throws Exception {
+    mockMvc
+        .perform(
+            put("/api/users/me/password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "currentPassword": "itest.changepw.old123!",
+                      "newPassword": "itest.changepw.new456!",
+                      "confirmNewPassword": "itest.changepw.new456!"
+                    }
+                    """))
+        .andExpect(status().isUnauthorized());
+
+    verify(authService, never()).changePassword(any(), any());
+  }
+
+  @Test
+  @WithMockUser(roles = "CLIENT")
+  void givenMismatchedNewPasswords_whenChangePassword_thenValidationFails() throws Exception {
+    mockMvc
+        .perform(
+            put("/api/users/me/password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "currentPassword": "itest.changepw.old123!",
+                      "newPassword": "itest.changepw.new456!",
+                      "confirmNewPassword": "itest.changepw.different789!"
+                    }
+                    """))
+        .andExpect(status().isBadRequest());
+
+    verify(authService, never()).changePassword(any(), any());
   }
 }

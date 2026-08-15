@@ -7,17 +7,24 @@ import com.consi.fitme.dto.UserDTO;
 import com.consi.fitme.dto.request.CreateUserRequestDTO;
 import com.consi.fitme.dto.request.RegisterRequestDTO;
 import com.consi.fitme.dto.request.UpdateUserRequestDTO;
+import com.consi.fitme.exception.auth.CurrentPasswordMismatchException;
 import com.consi.fitme.exception.auth.InvalidActivationTokenException;
 import com.consi.fitme.exception.auth.LoginFailedException;
+import com.consi.fitme.exception.auth.SamePasswordException;
 import com.consi.fitme.model.Role;
 import com.consi.fitme.model.Status;
 import com.consi.fitme.model.entity.User;
 import com.consi.fitme.repository.UserRepository;
 import jakarta.servlet.http.Cookie;
+import java.util.List;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +41,18 @@ class AuthServiceIT {
   @Autowired private UserService userService;
   @Autowired private UserRepository userRepository;
   @Autowired private ActivationTokenService activationTokenService;
+  @Autowired private JwtService jwtService;
+  @Autowired private PasswordEncoder passwordEncoder;
+
+  @AfterEach
+  void clearSecurityContext() {
+    SecurityContextHolder.clearContext();
+  }
+
+  private void authenticateAs(User user) {
+    SecurityContextHolder.getContext()
+        .setAuthentication(new UsernamePasswordAuthenticationToken(user, null, List.of()));
+  }
 
   @Test
   void givenInactiveUser_whenLogin_thenThrowsLoginFailedException() {
@@ -266,6 +285,59 @@ class AuthServiceIT {
 
     assertThatThrownBy(() -> service.activate(token))
         .isInstanceOf(InvalidActivationTokenException.class);
+  }
+
+  @Test
+  void givenCorrectCurrentPassword_whenChangePassword_thenUpdatesPasswordAndInvalidatesOldToken()
+      throws InterruptedException {
+    String seed = String.valueOf(System.currentTimeMillis());
+    String email = "itest.changepw.ok." + seed + "@fitme.com";
+    String oldPassword = "itest.changepw.ok.fitme123!";
+    String newPassword = "itest.changepw.ok.fitme456!";
+
+    UserDTO activeUser = createActiveUser(seed, email, oldPassword);
+    User userBeforeChange = userRepository.findById(activeUser.getId()).orElseThrow();
+    String oldToken = jwtService.generateToken(userBeforeChange);
+
+    // JWT `iat` has second-level granularity; wait past the second boundary so the old
+    // token's iat is guaranteed to precede the new passwordChangedAt timestamp.
+    Thread.sleep(1100);
+
+    authenticateAs(userBeforeChange);
+    service.changePassword(oldPassword, newPassword);
+
+    User persisted = userRepository.findById(activeUser.getId()).orElseThrow();
+    assertThat(persisted.getPasswordChangedAt()).isNotNull();
+    assertThat(passwordEncoder.matches(newPassword, persisted.getPassword())).isTrue();
+    assertThat(jwtService.isTokenValid(oldToken, persisted)).isFalse();
+  }
+
+  @Test
+  void givenWrongCurrentPassword_whenChangePassword_thenThrowsCurrentPasswordMismatchException() {
+    String seed = String.valueOf(System.currentTimeMillis());
+    String email = "itest.changepw.wrong." + seed + "@fitme.com";
+    String password = "itest.changepw.wrong.fitme123!";
+
+    UserDTO activeUser = createActiveUser(seed, email, password);
+    User user = userRepository.findById(activeUser.getId()).orElseThrow();
+    authenticateAs(user);
+
+    assertThatThrownBy(() -> service.changePassword("not-the-real-password", "irrelevant123!"))
+        .isInstanceOf(CurrentPasswordMismatchException.class);
+  }
+
+  @Test
+  void givenNewPasswordSameAsOld_whenChangePassword_thenThrowsSamePasswordException() {
+    String seed = String.valueOf(System.currentTimeMillis());
+    String email = "itest.changepw.same." + seed + "@fitme.com";
+    String password = "itest.changepw.same.fitme123!";
+
+    UserDTO activeUser = createActiveUser(seed, email, password);
+    User user = userRepository.findById(activeUser.getId()).orElseThrow();
+    authenticateAs(user);
+
+    assertThatThrownBy(() -> service.changePassword(password, password))
+        .isInstanceOf(SamePasswordException.class);
   }
 
   private UserDTO createActiveUser(String seed, String email, String password) {

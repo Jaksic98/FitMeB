@@ -6,6 +6,7 @@ import com.consi.fitme.dto.request.UpdateUserRequestDTO;
 import com.consi.fitme.dto.request.UserSearchRequestDTO;
 import com.consi.fitme.dto.response.MessageResponseDTO;
 import com.consi.fitme.dto.response.PagingResponseDTO;
+import com.consi.fitme.exception.auth.SamePasswordException;
 import com.consi.fitme.exception.user.PhoneNumberAlreadyExistsException;
 import com.consi.fitme.exception.user.UserNotFoundException;
 import com.consi.fitme.exception.user.UsernameAlreadyExistsException;
@@ -16,12 +17,16 @@ import com.consi.fitme.model.Status;
 import com.consi.fitme.model.entity.User;
 import com.consi.fitme.repository.UserRepository;
 import com.consi.fitme.util.PaginationUtils;
+import java.time.LocalDateTime;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -33,6 +38,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class UserService {
 
+  private static final Logger logger = LoggerFactory.getLogger(UserService.class);
   private static final Pattern PASSWORD_PATTERN = Pattern.compile("^(?=.*\\d)(?=.*[\\W_]).{8,72}$");
   private static final String ENTITY_TYPE = "USER";
 
@@ -40,6 +46,10 @@ public class UserService {
   private final UserPatchMapper userPatchMapper;
   private final PasswordEncoder passwordEncoder;
   private final AuditLogService auditLogService;
+  private final EmailService emailService;
+
+  @Value("${email.templates.password-changed:fitme_password_changed}")
+  private String passwordChangedTemplateName;
 
   public PagingResponseDTO<UserDTO> getUsers(UserSearchRequestDTO searchRequest) {
     Pageable pageable = PaginationUtils.getPageable(searchRequest);
@@ -169,6 +179,32 @@ public class UserService {
     repository.save(user);
     auditLogService.logDelete(ENTITY_TYPE, user.getId(), oldState);
     return new MessageResponseDTO("Uspešno obrisan korisnik za ID: " + id);
+  }
+
+  @Transactional
+  public void applyNewPassword(User user, String rawNewPassword) {
+    if (passwordEncoder.matches(rawNewPassword, user.getPassword())) {
+      throw new SamePasswordException();
+    }
+
+    UserDTO oldState = toDto(user);
+    user.setPassword(passwordEncoder.encode(rawNewPassword));
+    user.setPasswordChangedAt(LocalDateTime.now());
+    user.setPasswordResetTokenHash(null);
+    user.setPasswordResetExpiresAt(null);
+    User savedUser = repository.save(user);
+    UserDTO newState = toDto(savedUser);
+    auditLogService.logUpdate(ENTITY_TYPE, savedUser.getId(), oldState, newState);
+
+    try {
+      emailService.sendTemplate(savedUser.getEmail(), passwordChangedTemplateName, List.of());
+    } catch (Exception ex) {
+      logger.error(
+          "Greška pri slanju potvrde o promeni lozinke: email={}, error={}",
+          savedUser.getEmail(),
+          ex.getMessage(),
+          ex);
+    }
   }
 
   private void ensureEmailUnique(String email, Long currentUserId) {

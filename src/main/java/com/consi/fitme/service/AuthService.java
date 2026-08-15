@@ -3,6 +3,7 @@ package com.consi.fitme.service;
 import com.consi.fitme.dto.UserDTO;
 import com.consi.fitme.dto.request.CreateUserRequestDTO;
 import com.consi.fitme.dto.request.RegisterRequestDTO;
+import com.consi.fitme.exception.auth.CurrentPasswordMismatchException;
 import com.consi.fitme.exception.auth.InvalidActivationTokenException;
 import com.consi.fitme.exception.auth.InvalidJwtTokenException;
 import com.consi.fitme.exception.auth.LoginFailedException;
@@ -27,8 +28,10 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,6 +47,7 @@ public class AuthService {
   private final UserRepository userRepository;
   private final UserService userService;
   private final ActivationTokenService activationTokenService;
+  private final PasswordEncoder passwordEncoder;
 
   public void login(String email, String password, HttpServletResponse response) {
     Optional<User> foundUser = userRepository.findByEmailAndStatusNot(email, Status.DELETED);
@@ -129,6 +133,26 @@ public class AuthService {
     user.setFailedLoginAttempts(0);
     userRepository.save(user);
     logger.info("Account activated: email={}", email);
+  }
+
+  @Transactional
+  public void changePassword(String currentPassword, String newPassword) {
+    User user = resolveCurrentUser();
+    if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+      logger.warn("Change password rejected, wrong current password: email={}", user.getEmail());
+      throw new CurrentPasswordMismatchException();
+    }
+
+    userService.applyNewPassword(user, newPassword);
+    logger.info("Password changed: email={}", user.getEmail());
+  }
+
+  private User resolveCurrentUser() {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    if (authentication == null || !(authentication.getPrincipal() instanceof User currentUser)) {
+      throw new IllegalStateException("Nema autentikovanog korisnika u SecurityContext-u");
+    }
+    return currentUser;
   }
 
   public void validateSession(HttpServletRequest request) {

@@ -9,6 +9,7 @@ import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import java.security.Key;
+import java.time.ZoneId;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -52,7 +53,16 @@ public class JwtService {
 
   public boolean isTokenValid(String token, UserDetails userDetails) {
     final String username = extractUsername(token);
-    return username.equals(resolveLoginSubject(userDetails)) && !isTokenExpired(token);
+    if (!username.equals(resolveLoginSubject(userDetails)) || isTokenExpired(token)) {
+      return false;
+    }
+    if (userDetails instanceof User user && user.getPasswordChangedAt() != null) {
+      Date issuedAt = extractClaim(token, Claims::getIssuedAt);
+      Date passwordChangedAt =
+          Date.from(user.getPasswordChangedAt().atZone(ZoneId.systemDefault()).toInstant());
+        return !issuedAt.before(passwordChangedAt);
+    }
+    return true;
   }
 
   public Cookie generateCookie(String token) {

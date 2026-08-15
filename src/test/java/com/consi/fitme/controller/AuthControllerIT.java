@@ -120,6 +120,70 @@ class AuthControllerIT {
   }
 
   @Test
+  void givenAnyEmail_whenForgotPassword_thenReturnsOk() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/auth/forgot-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "email": "itest.forgot.nonexistent@fitme.com"
+                    }
+                    """))
+        .andExpect(status().isOk());
+  }
+
+  @Test
+  void givenInvalidEmail_whenForgotPassword_thenValidationFails() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/auth/forgot-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "email": "not-an-email"
+                    }
+                    """))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void givenMismatchedNewPasswords_whenResetPassword_thenValidationFails() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/auth/reset-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "token": "some-token",
+                      "newPassword": "itest.reset.fitme123!",
+                      "confirmNewPassword": "itest.reset.different456!"
+                    }
+                    """))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void givenInvalidToken_whenResetPassword_thenReturnsBadRequest() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/auth/reset-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "token": "not-a-real-token",
+                      "newPassword": "itest.reset.fitme123!",
+                      "confirmNewPassword": "itest.reset.fitme123!"
+                    }
+                    """))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
   void givenMissingPhoneNumber_whenSendOtp_thenValidationFails() throws Exception {
     mockMvc
         .perform(
