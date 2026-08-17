@@ -21,7 +21,10 @@ public class BrevoEmailService implements EmailService {
           "fitme_otp", "Vaš verifikacioni kod — FitMe",
           "fitme_reminder", "Podsetnik za termin — FitMe",
           "fitme_password_reset", "Reset lozinke — FitMe",
-          "fitme_password_changed", "Vaša lozinka je promenjena — FitMe");
+          "fitme_password_changed", "Vaša lozinka je promenjena — FitMe",
+          "email-booking-confirmation", "Rezervacija potvrđena — FitMe",
+          "email-booking-cancellation", "Termin otkazan — FitMe",
+          "email-booking-reschedule", "Termin premešten — FitMe");
 
   private final BrevoEmailClient brevoEmailClient;
 
@@ -30,6 +33,16 @@ public class BrevoEmailService implements EmailService {
     String htmlContent = loadTemplate(templateName);
     for (int i = 0; i < placeholders.size(); i++) {
       htmlContent = htmlContent.replace("{{" + i + "}}", placeholders.get(i));
+    }
+    String subject = SUBJECTS_BY_TEMPLATE.getOrDefault(templateName, DEFAULT_SUBJECT);
+    brevoEmailClient.send(toEmail, subject, htmlContent);
+  }
+
+  @Override
+  public void sendTemplate(String toEmail, String templateName, Map<String, String> placeholders) {
+    String htmlContent = loadTemplate(templateName);
+    for (Map.Entry<String, String> entry : placeholders.entrySet()) {
+      htmlContent = htmlContent.replace("{{" + entry.getKey() + "}}", entry.getValue());
     }
     String subject = SUBJECTS_BY_TEMPLATE.getOrDefault(templateName, DEFAULT_SUBJECT);
     brevoEmailClient.send(toEmail, subject, htmlContent);

@@ -60,7 +60,7 @@ public class JwtService {
       Date issuedAt = extractClaim(token, Claims::getIssuedAt);
       Date passwordChangedAt =
           Date.from(user.getPasswordChangedAt().atZone(ZoneId.systemDefault()).toInstant());
-        return !issuedAt.before(passwordChangedAt);
+      return !issuedAt.before(passwordChangedAt);
     }
     return true;
   }

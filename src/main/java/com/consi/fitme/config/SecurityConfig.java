@@ -48,17 +48,12 @@ public class SecurityConfig {
         .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin))
         .authorizeHttpRequests(
             auth ->
-                auth.requestMatchers(
-                        "/login",
-                        "/index.html",
-                        "/",
-                        "/static/**",
-                        "/assets/**",
-                        "/map.html",
-                        "/api/auth/**")
+                auth.requestMatchers("/api/auth/**", "/api/appointments/*/ics")
                     .permitAll()
+                    .requestMatchers("/api/**")
+                    .authenticated()
                     .anyRequest()
-                    .authenticated())
+                    .permitAll())
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .exceptionHandling(

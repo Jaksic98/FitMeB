@@ -14,6 +14,7 @@ import com.consi.fitme.model.Status;
 import com.consi.fitme.model.entity.User;
 import com.consi.fitme.repository.UserRepository;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -178,7 +179,7 @@ class PhoneVerificationServiceIT {
 
     phoneVerificationService.sendOtp(nonexistentPhoneNumber);
 
-    verify(emailService, never()).sendTemplate(any(), any(), any());
+    verify(emailService, never()).sendTemplate(any(), any(), Collections.singletonList(any()));
   }
 
   @Test
@@ -204,6 +205,6 @@ class PhoneVerificationServiceIT {
 
     phoneVerificationService.sendOtp(phoneNumber);
 
-    verify(emailService, never()).sendTemplate(any(), any(), any());
+    verify(emailService, never()).sendTemplate(any(), any(), Collections.singletonList(any()));
   }
 }

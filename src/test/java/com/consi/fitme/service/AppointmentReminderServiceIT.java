@@ -23,6 +23,7 @@ import com.consi.fitme.repository.AppointmentRepository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -119,7 +120,8 @@ class AppointmentReminderServiceIT {
 
     service.sendDueReminders();
 
-    verify(emailService).sendTemplate(eq(email), eq("fitme_reminder"), any());
+    verify(emailService)
+        .sendTemplate(eq(email), eq("fitme_reminder"), Collections.singletonList(any()));
     assertThat(reminderRepository.findById(due.getId()).orElseThrow().getSentAt()).isNotNull();
   }
 
@@ -136,7 +138,7 @@ class AppointmentReminderServiceIT {
 
     service.sendDueReminders();
 
-    verify(emailService, never()).sendTemplate(any(), any(), any());
+    verify(emailService, never()).sendTemplate(any(), any(), Collections.singletonList(any()));
     assertThat(reminderRepository.findById(notDue.getId()).orElseThrow().getSentAt()).isNull();
   }
 
@@ -154,7 +156,7 @@ class AppointmentReminderServiceIT {
 
     service.sendDueReminders();
 
-    verify(emailService, never()).sendTemplate(any(), any(), any());
+    verify(emailService, never()).sendTemplate(any(), any(), Collections.singletonList(any()));
   }
 
   private String bookAppointmentForReminderTest() {

@@ -14,6 +14,7 @@ import com.consi.fitme.model.Status;
 import com.consi.fitme.model.entity.User;
 import com.consi.fitme.repository.UserRepository;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -88,7 +89,7 @@ class PasswordResetServiceIT {
 
     passwordResetService.requestReset(nonexistentEmail);
 
-    verify(emailService, never()).sendTemplate(any(), any(), any());
+    verify(emailService, never()).sendTemplate(any(), any(), Collections.singletonList(any()));
   }
 
   @Test

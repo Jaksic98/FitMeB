@@ -42,7 +42,7 @@ cd ../../FitMe
 mkdir -p src/main/resources/static
 ```
 ```bash
-cp -r ./FitmeF/dist/. src/main/resources/static/
+cp -r ../FitmeF/dist/. src/main/resources/static/
 ```
 
 ### 2. Build the jar

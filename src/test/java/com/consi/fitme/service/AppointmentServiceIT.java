@@ -29,9 +29,11 @@ import com.consi.fitme.model.Role;
 import com.consi.fitme.model.Status;
 import com.consi.fitme.model.entity.Appointment;
 import com.consi.fitme.model.entity.AppointmentReminder;
+import com.consi.fitme.model.entity.Termin;
 import com.consi.fitme.model.entity.User;
 import com.consi.fitme.repository.AppointmentReminderRepository;
 import com.consi.fitme.repository.AppointmentRepository;
+import com.consi.fitme.repository.TerminRepository;
 import com.consi.fitme.repository.UserRepository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -61,6 +63,7 @@ class AppointmentServiceIT {
   @Autowired private PilatesService pilatesService;
   @Autowired private UserRepository userRepository;
   @Autowired private AppointmentRepository appointmentRepository;
+  @Autowired private TerminRepository terminRepository;
   @Autowired private AppointmentReminderRepository appointmentReminderRepository;
 
   @AfterEach
@@ -118,8 +121,8 @@ class AppointmentServiceIT {
   void
       givenClientWithActiveMembership_whenBookAnotherAppointment_thenMembershipExpiresAtUnchanged() {
     UserDTO client = createActiveClient(seed(), 3);
-    Long firstAppointmentId =
-        createAppointment(farFutureDate(), LocalTime.of(9, 0), LocalTime.of(10, 0));
+    LocalDate firstDate = farFutureDate();
+    Long firstAppointmentId = createAppointment(firstDate, LocalTime.of(9, 0), LocalTime.of(10, 0));
     authenticateAs(client.getId(), "CLIENT");
     service.bookAppointment(
         BookAppointmentRequestDTO.builder().appointmentId(firstAppointmentId).build());
@@ -127,7 +130,7 @@ class AppointmentServiceIT {
         userRepository.findById(client.getId()).orElseThrow().getMembershipExpiresAt();
 
     Long secondAppointmentId =
-        createAppointment(farFutureDate(), LocalTime.of(11, 0), LocalTime.of(12, 0));
+        createAppointment(firstDate.plusDays(1), LocalTime.of(11, 0), LocalTime.of(12, 0));
     service.bookAppointment(
         BookAppointmentRequestDTO.builder().appointmentId(secondAppointmentId).build());
 
@@ -765,10 +768,11 @@ class AppointmentServiceIT {
   @Test
   void givenPilatesIdFilter_whenGetAllAppointments_thenReturnsOnlyMatchingPilates() {
     UserDTO client = createActiveClient(seed(), 3);
+    LocalDate firstDate = farFutureDate();
     Long firstAppointmentId =
-        createAppointment(farFutureDate(), LocalTime.of(9, 0), LocalTime.of(10, 0));
+        createAppointment(firstDate, LocalTime.of(9, 0), LocalTime.of(10, 0));
     Long secondAppointmentId =
-        createAppointment(farFutureDate(), LocalTime.of(11, 0), LocalTime.of(12, 0));
+        createAppointment(firstDate.plusDays(1), LocalTime.of(11, 0), LocalTime.of(12, 0));
     authenticateAs(client.getId(), "CLIENT");
     service.bookAppointment(
         BookAppointmentRequestDTO.builder().appointmentId(firstAppointmentId).build());
@@ -805,9 +809,8 @@ class AppointmentServiceIT {
                 .dateTo(matchingDate)
                 .build());
 
-    assertThat(appointments)
-        .extracting(AppointmentDTO::getId)
-        .containsExactly(matchingAppointmentId);
+    assertThat(appointments).extracting(AppointmentDTO::getId).contains(matchingAppointmentId);
+    assertThat(appointments).extracting(AppointmentDTO::getId).doesNotContain(otherAppointmentId);
   }
 
   @Test
@@ -1043,7 +1046,20 @@ class AppointmentServiceIT {
 
   private Long createAppointmentForCancelWindowTest(LocalDateTime terminStart) {
     LocalTime startTime = terminStart.toLocalTime();
+    clearConflictingActiveTermini(terminStart.toLocalDate());
     return createAppointment(terminStart.toLocalDate(), startTime, capEndOfDay(startTime, 30));
+  }
+
+  /**
+   * Cancel-window tests anchor termini to real wall-clock "now", which can collide with unrelated
+   * Termin rows already sitting in the shared dev database (e.g. from manual admin testing).
+   * Neutralizing them here is safe: the test's transaction rolls back afterward, so this never
+   * permanently touches real data.
+   */
+  private void clearConflictingActiveTermini(LocalDate date) {
+    List<Termin> conflicting = terminRepository.findByDateAndStatus(date, Status.ACTIVE);
+    conflicting.forEach(termin -> termin.setStatus(Status.INACTIVE));
+    terminRepository.saveAll(conflicting);
   }
 
   private LocalTime capEndOfDay(LocalTime startTime, long durationMinutes) {

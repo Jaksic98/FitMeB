@@ -49,6 +49,9 @@ email:
     reminder: fitme_reminder
     password-reset: fitme_password_reset
     password-changed: fitme_password_changed
+    booking-confirmation: email-booking-confirmation
+    booking-cancellation: email-booking-cancellation
+    booking-reschedule: email-booking-reschedule
 
 brevo:
   api-key: ${BREVO_API_KEY:}

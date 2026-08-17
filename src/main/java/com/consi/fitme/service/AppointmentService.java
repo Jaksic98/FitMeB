@@ -57,6 +57,8 @@ public class AppointmentService {
   private final UserRepository userRepository;
   private final AuditLogService auditLogService;
   private final AppointmentReminderService appointmentReminderService;
+  private final BookingNotificationService bookingNotificationService;
+  private final IcsCalendarService icsCalendarService;
 
   public List<AppointmentDTO> getAllAppointments(AppointmentSearchRequestDTO filter) {
     List<Appointment> appointments = repository.findAllByStatus(AppointmentStatus.BOOKED);
@@ -94,6 +96,30 @@ public class AppointmentService {
 
   public AppointmentDTO getAppointment(Long id) {
     return toDto(findOrThrow(id));
+  }
+
+  public byte[] getIcsFile(Long id, String token) {
+    Appointment appointment = findOrThrow(id);
+    if (appointment.getStatus() != AppointmentStatus.BOOKED) {
+      throw new AppointmentNotBookedException();
+    }
+    if (isAuthenticatedUser()) {
+      if (!isAdmin() && !resolveCurrentUser().getId().equals(appointment.getUserId())) {
+        throw new AppointmentOwnershipException();
+      }
+    } else if (!icsCalendarService.isIcsAccessTokenValid(id, token)) {
+      throw new AppointmentOwnershipException();
+    }
+
+    Termin termin = terminRepository.findById(appointment.getTerminId()).orElseThrow();
+    Pilates pilates = pilatesRepository.findById(appointment.getPilatesId()).orElseThrow();
+
+    return icsCalendarService.buildIcsFile(
+        appointment.getId(),
+        "FitMe — " + pilates.getName(),
+        termin.getDate(),
+        termin.getStartTime(),
+        termin.getEndTime());
   }
 
   public List<AppointmentDTO> getAvailableAppointments(LocalDate dateFilter) {
@@ -166,6 +192,9 @@ public class AppointmentService {
     appointmentReminderService.scheduleReminders(
         saved.getId(), LocalDateTime.of(termin.getDate(), termin.getStartTime()));
 
+    Pilates pilates = pilatesRepository.findById(saved.getPilatesId()).orElseThrow();
+    bookingNotificationService.sendConfirmation(saved.getId(), targetUser, termin, pilates);
+
     if (targetUser.getMembershipExpiresAt() == null) {
       targetUser.setMembershipExpiresAt(LocalDate.now().plusDays(MEMBERSHIP_DURATION_DAYS));
     }
@@ -201,14 +230,25 @@ public class AppointmentService {
 
     if (updateAppointmentRequestDTO.getTargetAppointmentId() == null) {
       Long ownerUserId = appointment.getUserId();
+      Termin cancelledTermin = terminRepository.findById(appointment.getTerminId()).orElseThrow();
+      Pilates cancelledPilates =
+          pilatesRepository.findById(appointment.getPilatesId()).orElseThrow();
       appointment.setStatus(AppointmentStatus.AVAILABLE);
       appointment.setUserId(null);
       Appointment saved = repository.save(appointment);
       appointmentReminderService.cancelReminders(saved.getId());
 
-      if (!isAdmin || !currentUser.getId().equals(ownerUserId)) {
+      boolean creditRefunded = !isAdmin || !currentUser.getId().equals(ownerUserId);
+      if (creditRefunded) {
         refundAppointmentCredit(ownerUserId);
       }
+
+      User owner =
+          userRepository
+              .findById(ownerUserId)
+              .orElseThrow(() -> new UserNotFoundException(ownerUserId));
+      bookingNotificationService.sendCancellation(
+          saved.getId(), owner, cancelledTermin, cancelledPilates, creditRefunded);
 
       AppointmentDTO newState = toDto(saved);
       auditLogService.logUpdate(ENTITY_TYPE, saved.getId(), oldState, newState);
@@ -306,6 +346,9 @@ public class AppointmentService {
     AppointmentDTO targetOldState = toDto(targetAppointment);
 
     Long bookedUserId = sourceAppointment.getUserId();
+    Termin sourceTermin = terminRepository.findById(sourceAppointment.getTerminId()).orElseThrow();
+    Pilates sourcePilates =
+        pilatesRepository.findById(sourceAppointment.getPilatesId()).orElseThrow();
 
     if (!isAdmin) {
       Termin targetTermin =
@@ -326,8 +369,16 @@ public class AppointmentService {
     Appointment savedTarget = claimSlot(targetAppointment);
 
     Termin targetTermin = terminRepository.findById(savedTarget.getTerminId()).orElseThrow();
+    Pilates targetPilates = pilatesRepository.findById(savedTarget.getPilatesId()).orElseThrow();
     appointmentReminderService.scheduleReminders(
         savedTarget.getId(), LocalDateTime.of(targetTermin.getDate(), targetTermin.getStartTime()));
+
+    User bookedUser =
+        userRepository
+            .findById(bookedUserId)
+            .orElseThrow(() -> new UserNotFoundException(bookedUserId));
+    bookingNotificationService.sendReschedule(
+        savedTarget.getId(), bookedUser, sourceTermin, sourcePilates, targetTermin, targetPilates);
 
     auditLogService.logUpdate(ENTITY_TYPE, savedSource.getId(), sourceOldState, toDto(savedSource));
     AppointmentDTO targetNewState = toDto(savedTarget);
@@ -352,7 +403,7 @@ public class AppointmentService {
     List<Long> bookedTerminIds =
         repository.findAllByUserId(userId).stream()
             .filter(a -> a.getStatus() == AppointmentStatus.BOOKED)
-            .filter(a -> excludeAppointmentId == null || !a.getId().equals(excludeAppointmentId))
+            .filter(a -> !a.getId().equals(excludeAppointmentId))
             .map(Appointment::getTerminId)
             .distinct()
             .toList();
@@ -426,6 +477,11 @@ public class AppointmentService {
 
   private Appointment findOrThrow(Long id) {
     return repository.findById(id).orElseThrow(() -> new AppointmentNotFoundException(id));
+  }
+
+  private boolean isAuthenticatedUser() {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    return authentication != null && authentication.getPrincipal() instanceof User;
   }
 
   private boolean isAdmin() {

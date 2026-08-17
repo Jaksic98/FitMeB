@@ -57,6 +57,16 @@ public class AppointmentController {
             service.getAppointment(id), "Appointment je uspešno preuzet", request.getRequestURI()));
   }
 
+  @GetMapping("/{id}/ics")
+  public ResponseEntity<byte[]> downloadIcs(
+      @PathVariable Long id, @RequestParam(required = false) String token) {
+    byte[] ics = service.getIcsFile(id, token);
+    return ResponseEntity.ok()
+        .header("Content-Type", "text/calendar; charset=utf-8")
+        .header("Content-Disposition", "attachment; filename=\"fitme-termin-" + id + ".ics\"")
+        .body(ics);
+  }
+
   @GetMapping("/available")
   @PreAuthorize("hasAnyRole('ADMIN', 'CLIENT')")
   public ResponseEntity<SuccessResponseDTO<List<AppointmentDTO>>> getAvailableAppointments(

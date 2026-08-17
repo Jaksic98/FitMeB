@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FitMe — Potvrda rezervacije</title>
+</head>
+<body style="margin:0;padding:0;background:#F4F2EF;font-family:Arial,Helvetica,sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F4F2EF;padding:32px 16px;">
+<tr><td align="center">
+<table role="presentation" width="480" cellpadding="0" cellspacing="0" style="width:480px;max-width:100%;background:#ffffff;border:1px solid #E7E3DD;border-radius:20px;overflow:hidden;">
+
+  <tr><td style="padding:28px 36px;border-bottom:1px solid #E8E4DE;">
+    <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+      <td style="width:26px;height:26px;background:#E11414;border-radius:6px;font-size:0;line-height:0;">&nbsp;</td>
+      <td style="padding-left:9px;font-size:19px;font-weight:900;color:#121110;letter-spacing:-0.02em;">FitMe</td>
+    </tr></table>
+  </td></tr>
+
+  <tr><td style="padding:40px 36px 8px;text-align:center;">
+    <div style="width:62px;height:62px;border-radius:16px;background:#EAF7EC;margin:0 auto 22px;text-align:center;line-height:62px;font-size:26px;">✅</div>
+    <div style="font-size:12px;font-weight:700;letter-spacing:0.18em;color:#1F9D4A;font-family:'Courier New',monospace;margin-bottom:10px;text-transform:uppercase;">Rezervacija potvrđena</div>
+    <!-- {{FIRST_NAME}} -->
+    <h1 style="font-size:24px;font-weight:800;letter-spacing:-0.02em;color:#121110;margin:0 0 14px;">Vidimo se, {{FIRST_NAME}}!</h1>
+    <p style="font-size:15px;line-height:1.6;color:#6F6B66;margin:0 0 28px;">Vaš termin je rezervisan. Detalji ispod — dodajte ga u kalendar da ga ne propustite.</p>
+  </td></tr>
+
+  <!-- detalji termina -->
+  <tr><td style="padding:0 36px 8px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F4F2EF;border:1px solid #E7E3DD;border-radius:14px;">
+      <tr>
+        <td style="padding:20px 22px;border-bottom:1px solid #E7E3DD;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+            <td style="font-size:13px;color:#9C968F;">Dan i datum</td>
+            <!-- {{DAY_NAME}}, {{DATE}} -->
+            <td align="right" style="font-size:15px;font-weight:700;color:#121110;">{{DAY_NAME}}, {{DATE}}</td>
+          </tr></table>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:16px 22px;border-bottom:1px solid #E7E3DD;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+            <td style="font-size:13px;color:#9C968F;">Vreme</td>
+            <!-- {{TIME}} - {{END_TIME}} -->
+            <td align="right" style="font-size:15px;font-weight:700;color:#121110;">{{TIME}} – {{END_TIME}}</td>
+          </tr></table>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:16px 22px;border-bottom:1px solid #E7E3DD;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+            <td style="font-size:13px;color:#9C968F;">Sprava</td>
+            <td align="right" style="font-size:15px;font-weight:700;color:#121110;">{{MACHINE_NAME}}</td>
+          </tr></table>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:16px 22px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+            <td style="font-size:13px;color:#9C968F;">Lokacija</td>
+            <td align="right" style="font-size:15px;font-weight:700;color:#121110;">Kedrova 12, Beograd</td>
+          </tr></table>
+        </td>
+      </tr>
+    </table>
+  </td></tr>
+
+  <!-- dodaj u kalendar -->
+  <tr><td style="padding:28px 36px 6px;">
+    <!-- {{ICS_DOWNLOAD_URL}}: link ka .ics fajlu (potpisan token, ne traži prijavu) — telefon ga otvara direktno u podrazumevanoj kalendar aplikaciji -->
+    <a href="{{ICS_DOWNLOAD_URL}}" style="display:block;text-align:center;background:#121110;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;padding:13px 10px;border-radius:11px;">📅 Dodaj u kalendar</a>
+  </td></tr>
+
+  <!-- CTA -->
+  <tr><td style="padding:22px 36px 8px;text-align:center;">
+    <a href="{{MY_APPOINTMENTS_URL}}" style="display:inline-block;background:#E11414;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;padding:14px 30px;border-radius:11px;">Moji termini</a>
+  </td></tr>
+
+  <tr><td style="padding:16px 36px 8px;text-align:center;">
+    <p style="font-size:13px;line-height:1.6;color:#9C968F;margin:0;">Ako otkažete kasnije od 12h pre termina, kredit se ne vraća na Vaš nalog. Detalji na <a href="{{CONTACT_URL}}" style="color:#E11414;text-decoration:underline;">stranici kontakta</a>.</p>
+  </td></tr>
+
+  <tr><td style="padding:20px 36px;border-top:1px solid #E8E4DE;text-align:center;">
+    <p style="font-family:'Courier New',monospace;font-size:11px;color:#9C968F;letter-spacing:0.04em;margin:0;">fitme.rs · Kedrova sauna &amp; Pilates</p>
+  </td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>
