@@ -2,6 +2,7 @@ package com.consi.fitme.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -23,7 +24,6 @@ import com.consi.fitme.repository.AppointmentRepository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -120,14 +120,13 @@ class AppointmentReminderServiceIT {
 
     service.sendDueReminders();
 
-    verify(emailService)
-        .sendTemplate(eq(email), eq("fitme_reminder"), Collections.singletonList(any()));
+    verify(emailService).sendTemplate(eq(email), eq("fitme_reminder"), anyList());
     assertThat(reminderRepository.findById(due.getId()).orElseThrow().getSentAt()).isNotNull();
   }
 
   @Test
   void givenNotYetDueReminder_whenSendDueReminders_thenDoesNotSend() {
-    bookAppointmentForReminderTest();
+    String email = bookAppointmentForReminderTest();
     AppointmentReminder notDue =
         reminderRepository.save(
             AppointmentReminder.builder()
@@ -138,13 +137,13 @@ class AppointmentReminderServiceIT {
 
     service.sendDueReminders();
 
-    verify(emailService, never()).sendTemplate(any(), any(), Collections.singletonList(any()));
+    verify(emailService, never()).sendTemplate(eq(email), any(), anyList());
     assertThat(reminderRepository.findById(notDue.getId()).orElseThrow().getSentAt()).isNull();
   }
 
   @Test
   void givenAlreadySentReminder_whenSendDueRemindersCalledAgain_thenDoesNotResend() {
-    bookAppointmentForReminderTest();
+    String email = bookAppointmentForReminderTest();
     LocalDateTime alreadySentAt = LocalDateTime.now().minusMinutes(1);
     reminderRepository.save(
         AppointmentReminder.builder()
@@ -156,7 +155,7 @@ class AppointmentReminderServiceIT {
 
     service.sendDueReminders();
 
-    verify(emailService, never()).sendTemplate(any(), any(), Collections.singletonList(any()));
+    verify(emailService, never()).sendTemplate(eq(email), any(), anyList());
   }
 
   private String bookAppointmentForReminderTest() {

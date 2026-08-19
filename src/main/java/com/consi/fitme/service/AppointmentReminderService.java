@@ -11,6 +11,7 @@ import com.consi.fitme.repository.AppointmentRepository;
 import com.consi.fitme.repository.PilatesRepository;
 import com.consi.fitme.repository.TerminRepository;
 import com.consi.fitme.repository.UserRepository;
+import com.consi.fitme.util.AppClock;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +38,9 @@ public class AppointmentReminderService {
   @Value("${email.templates.reminder:fitme_reminder}")
   private String reminderTemplateName;
 
+  @Value("${frontend.base-url:https://pilates.fitme.rs}")
+  private String frontendBaseUrl;
+
   @Transactional
   public void scheduleReminders(Long appointmentId, LocalDateTime terminStart) {
     repository.save(
@@ -61,7 +65,7 @@ public class AppointmentReminderService {
   @Transactional
   public void sendDueReminders() {
     repository
-        .findAllByScheduledAtLessThanEqualAndSentAtIsNull(LocalDateTime.now())
+        .findAllByScheduledAtLessThanEqualAndSentAtIsNull(AppClock.now())
         .forEach(this::sendReminder);
   }
 
@@ -77,7 +81,10 @@ public class AppointmentReminderService {
           user.getEmail(),
           reminderTemplateName,
           List.of(
-              pilates.getName(), termin.getDate().toString(), termin.getStartTime().toString()));
+              pilates.getName(),
+              termin.getDate().toString(),
+              termin.getStartTime().toString(),
+              frontendBaseUrl + "/termini"));
     } catch (Exception ex) {
       log.error(
           "Greška pri slanju podsetnika: appointmentId={}, error={}",
@@ -86,7 +93,7 @@ public class AppointmentReminderService {
           ex);
     }
 
-    reminder.setSentAt(LocalDateTime.now());
+    reminder.setSentAt(AppClock.now());
     repository.save(reminder);
   }
 }

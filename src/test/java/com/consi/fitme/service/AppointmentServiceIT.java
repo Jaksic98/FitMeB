@@ -49,6 +49,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
@@ -65,6 +66,7 @@ class AppointmentServiceIT {
   @Autowired private AppointmentRepository appointmentRepository;
   @Autowired private TerminRepository terminRepository;
   @Autowired private AppointmentReminderRepository appointmentReminderRepository;
+  @MockitoBean private EmailService emailService;
 
   @AfterEach
   void clearSecurityContext() {
@@ -769,8 +771,7 @@ class AppointmentServiceIT {
   void givenPilatesIdFilter_whenGetAllAppointments_thenReturnsOnlyMatchingPilates() {
     UserDTO client = createActiveClient(seed(), 3);
     LocalDate firstDate = farFutureDate();
-    Long firstAppointmentId =
-        createAppointment(firstDate, LocalTime.of(9, 0), LocalTime.of(10, 0));
+    Long firstAppointmentId = createAppointment(firstDate, LocalTime.of(9, 0), LocalTime.of(10, 0));
     Long secondAppointmentId =
         createAppointment(firstDate.plusDays(1), LocalTime.of(11, 0), LocalTime.of(12, 0));
     authenticateAs(client.getId(), "CLIENT");
@@ -1047,7 +1048,7 @@ class AppointmentServiceIT {
   private Long createAppointmentForCancelWindowTest(LocalDateTime terminStart) {
     LocalTime startTime = terminStart.toLocalTime();
     clearConflictingActiveTermini(terminStart.toLocalDate());
-    return createAppointment(terminStart.toLocalDate(), startTime, capEndOfDay(startTime, 30));
+    return createAppointment(terminStart.toLocalDate(), startTime, capEndOfDay(startTime));
   }
 
   /**
@@ -1062,8 +1063,8 @@ class AppointmentServiceIT {
     terminRepository.saveAll(conflicting);
   }
 
-  private LocalTime capEndOfDay(LocalTime startTime, long durationMinutes) {
-    LocalTime endTime = startTime.plusMinutes(durationMinutes);
+  private LocalTime capEndOfDay(LocalTime startTime) {
+    LocalTime endTime = startTime.plusMinutes(30);
     return endTime.isAfter(startTime) ? endTime : LocalTime.of(23, 59);
   }
 

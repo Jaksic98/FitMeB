@@ -16,6 +16,7 @@ import com.consi.fitme.model.entity.TerminTemplate;
 import com.consi.fitme.repository.AppointmentRepository;
 import com.consi.fitme.repository.TerminRepository;
 import com.consi.fitme.repository.TerminTemplateRepository;
+import com.consi.fitme.util.AppClock;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -94,7 +95,7 @@ public class TerminTemplateService {
     terminTemplate.setStatus(Status.DELETED);
     repository.save(terminTemplate);
 
-    LocalDate today = LocalDate.now();
+    LocalDate today = AppClock.today();
     List<Termin> futureTermini =
         terminRepository.findAllByTemplateIdAndDateGreaterThanEqualAndStatusNot(
             id, today, Status.DELETED);
@@ -130,7 +131,7 @@ public class TerminTemplateService {
       DayOfWeek dayOfWeek, LocalTime startTime, LocalTime endTime, Long currentTemplateId) {
     boolean overlaps =
         repository.findAllByDayOfWeekAndStatus(dayOfWeek, Status.ACTIVE).stream()
-            .filter(other -> currentTemplateId == null || !other.getId().equals(currentTemplateId))
+            .filter(other -> !other.getId().equals(currentTemplateId))
             .anyMatch(
                 other ->
                     startTime.isBefore(other.getEndTime())

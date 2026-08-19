@@ -6,6 +6,7 @@ import com.consi.fitme.model.entity.Termin;
 import com.consi.fitme.model.entity.TerminTemplate;
 import com.consi.fitme.repository.TerminRepository;
 import com.consi.fitme.repository.TerminTemplateRepository;
+import com.consi.fitme.util.AppClock;
 import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +36,7 @@ public class TerminGenerationService {
       return;
     }
 
-    LocalDate today = LocalDate.now();
+    LocalDate today = AppClock.today();
     LocalDate endDate = today.plusDays(horizonDays);
 
     for (LocalDate date = today; !date.isAfter(endDate); date = date.plusDays(1)) {

@@ -28,6 +28,7 @@ import com.consi.fitme.repository.AppointmentRepository;
 import com.consi.fitme.repository.PilatesRepository;
 import com.consi.fitme.repository.TerminRepository;
 import com.consi.fitme.repository.UserRepository;
+import com.consi.fitme.util.AppClock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -173,7 +174,7 @@ public class AppointmentService {
 
     if (!isAdmin) {
       if (targetUser.getMembershipExpiresAt() != null
-          && targetUser.getMembershipExpiresAt().isBefore(LocalDate.now())) {
+          && targetUser.getMembershipExpiresAt().isBefore(AppClock.today())) {
         throw new MembershipExpiredException();
       }
       Integer remaining = targetUser.getRemainingAppointments();
@@ -196,7 +197,7 @@ public class AppointmentService {
     bookingNotificationService.sendConfirmation(saved.getId(), targetUser, termin, pilates);
 
     if (targetUser.getMembershipExpiresAt() == null) {
-      targetUser.setMembershipExpiresAt(LocalDate.now().plusDays(MEMBERSHIP_DURATION_DAYS));
+      targetUser.setMembershipExpiresAt(AppClock.today().plusDays(MEMBERSHIP_DURATION_DAYS));
     }
     if (!isAdmin) {
       targetUser.setRemainingAppointments(targetUser.getRemainingAppointments() - 1);
@@ -448,7 +449,7 @@ public class AppointmentService {
             .stream()
             .collect(Collectors.toMap(Pilates::getId, Function.identity()));
 
-    LocalDateTime now = LocalDateTime.now();
+    LocalDateTime now = AppClock.now();
     return appointments.stream()
         .filter(
             a -> {
@@ -564,6 +565,6 @@ public class AppointmentService {
     }
     LocalDateTime cutoff =
         LocalDateTime.of(termin.getDate(), termin.getStartTime()).minusHours(CANCEL_WINDOW_HOURS);
-    return LocalDateTime.now().isAfter(cutoff);
+    return AppClock.now().isAfter(cutoff);
   }
 }
