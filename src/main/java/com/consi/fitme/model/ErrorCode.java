@@ -17,6 +17,7 @@ public enum ErrorCode {
   MISSING_COOKIE(1105, "Nedostaje kolačić", HttpStatus.BAD_REQUEST),
   AUTHENTICATION_REQUIRED(1106, "Potrebna je autentikacija", HttpStatus.UNAUTHORIZED),
   ACCESS_DENIED(1107, "Pristup je zabranjen", HttpStatus.FORBIDDEN),
+  ACCOUNT_LOCKED(1108, "Nalog je zaključan", HttpStatus.FORBIDDEN),
   VALIDATION_FAILED(1400, "Validacija nije uspela", HttpStatus.BAD_REQUEST),
 
   // 21xx – user domain

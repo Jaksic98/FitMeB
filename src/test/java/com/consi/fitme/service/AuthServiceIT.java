@@ -7,6 +7,7 @@ import com.consi.fitme.dto.UserDTO;
 import com.consi.fitme.dto.request.CreateUserRequestDTO;
 import com.consi.fitme.dto.request.RegisterRequestDTO;
 import com.consi.fitme.dto.request.UpdateUserRequestDTO;
+import com.consi.fitme.exception.auth.AccountLockedException;
 import com.consi.fitme.exception.auth.CurrentPasswordMismatchException;
 import com.consi.fitme.exception.auth.InvalidActivationTokenException;
 import com.consi.fitme.exception.auth.LoginFailedException;
@@ -35,7 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 @TestPropertySource(properties = "spring.flyway.enabled=true")
 class AuthServiceIT {
 
-  private static final int MAX_FAILED_LOGIN_ATTEMPTS = 5;
+  private static final int MAX_FAILED_LOGIN_ATTEMPTS = 20;
 
   @Autowired private AuthService service;
   @Autowired private UserService userService;
@@ -122,7 +123,7 @@ class AuthServiceIT {
 
     MockHttpServletResponse response = new MockHttpServletResponse();
     assertThatThrownBy(() -> service.login(email, password, response))
-        .isInstanceOf(LoginFailedException.class);
+        .isInstanceOf(AccountLockedException.class);
 
     User persisted = userRepository.findById(activeUser.getId()).orElseThrow();
     assertThat(persisted.getStatus()).isEqualTo(Status.LOCKED);

@@ -3,6 +3,7 @@ package com.consi.fitme.service;
 import com.consi.fitme.dto.UserDTO;
 import com.consi.fitme.dto.request.CreateUserRequestDTO;
 import com.consi.fitme.dto.request.RegisterRequestDTO;
+import com.consi.fitme.exception.auth.AccountLockedException;
 import com.consi.fitme.exception.auth.CurrentPasswordMismatchException;
 import com.consi.fitme.exception.auth.InvalidActivationTokenException;
 import com.consi.fitme.exception.auth.InvalidJwtTokenException;
@@ -38,7 +39,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @AllArgsConstructor
 public class AuthService {
-  private static final int MAX_FAILED_LOGIN_ATTEMPTS = 5;
+  private static final int MAX_FAILED_LOGIN_ATTEMPTS = 20;
   private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
   private final JwtService jwtService;
@@ -53,7 +54,7 @@ public class AuthService {
     Optional<User> foundUser = userRepository.findByEmailAndStatusNot(email, Status.DELETED);
     if (foundUser.isPresent() && foundUser.get().getStatus() == Status.LOCKED) {
       logger.warn("Login rejected, account locked: email={}", email);
-      throw new LoginFailedException("Neispravno korisničko ime ili lozinka");
+      throw new AccountLockedException();
     }
 
     try {
